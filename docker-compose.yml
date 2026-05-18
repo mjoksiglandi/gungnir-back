@@ -1,0 +1,65 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gungnir-backend
+    env_file:
+      - .env.example
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      emqx:
+        condition: service_started
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run db:migrate && npm run db:seed && npm run start:dev"
+
+  postgres:
+    image: timescale/timescaledb-ha:pg17
+    container_name: gungnir-postgres
+    environment:
+      POSTGRES_DB: gungnir
+      POSTGRES_USER: gungnir
+      POSTGRES_PASSWORD: gungnir
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gungnir -d gungnir"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/home/postgres/pgdata/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d
+
+  redis:
+    image: redis:7-alpine
+    container_name: gungnir-redis
+    ports:
+      - "6379:6379"
+
+  emqx:
+    image: emqx/emqx:5.8.4
+    container_name: gungnir-emqx
+    environment:
+      EMQX_DASHBOARD__DEFAULT_USERNAME: admin
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: public
+    ports:
+      - "1883:1883"
+      - "18083:18083"
+
+  nats:
+    image: nats:2.11-alpine
+    container_name: gungnir-nats
+    ports:
+      - "4222:4222"
+    profiles: ["optional"]
+
+volumes:
+  postgres_data:
