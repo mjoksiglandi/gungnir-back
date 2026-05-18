@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { eq } from 'drizzle-orm';
 import { createHash, randomUUID } from 'node:crypto';
@@ -10,7 +10,9 @@ import { externalSources, mapLayers } from '@/infrastructure/database/schema';
 import { DgacSourceProvider } from './dgac-source.provider';
 
 @Injectable()
-export class ExternalSourcesService {
+export class ExternalSourcesService implements OnModuleInit {
+  private readonly logger = new Logger(ExternalSourcesService.name);
+
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: AppDb,
     @Inject(POSTGRES_CONNECTION) private readonly sqlClient: postgres.Sql,
@@ -20,6 +22,10 @@ export class ExternalSourcesService {
 
   list() {
     return this.db.select().from(externalSources);
+  }
+
+  onModuleInit() {
+    void this.syncEnabledSourcesOnStartup();
   }
 
   async syncAll() {
@@ -59,6 +65,28 @@ export class ExternalSourcesService {
         updatedAt: new Date(),
       }).where(eq(externalSources.id, source.id));
       throw error;
+    }
+  }
+
+  private async syncEnabledSourcesOnStartup() {
+    try {
+      const sources = await this.db.select().from(externalSources);
+      const enabledSources = sources.filter((source) => source.enabled);
+
+      for (const source of enabledSources) {
+        try {
+          const result = await this.syncSource(source);
+          this.logger.log(`Startup sync completed for '${source.id}' with ${result.featureCount} features.`);
+        } catch (error) {
+          this.logger.error(
+            `Startup sync failed for '${source.id}': ${error instanceof Error ? error.message : 'Unknown error'}`,
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Startup external source bootstrap failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 

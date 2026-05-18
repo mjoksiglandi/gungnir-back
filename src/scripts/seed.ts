@@ -192,6 +192,22 @@ async function main() {
         style: { marker: 'warning', color: '#d84315' },
       },
     },
+    {
+      id: 'layer-dgac-rpa',
+      name: 'DGAC RPA NOTAMs',
+      layerType: 'point',
+      sourceType: 'external',
+      enabled: false,
+      refreshIntervalSec: 300,
+      ttlSec: 21600,
+      confidence: 86,
+      metadata: {
+        provider: 'dgac',
+        dataset: 'notams-rpa',
+        geometryType: 'Point',
+        style: { marker: 'drone', color: '#8e24aa' },
+      },
+    },
   ]).onConflictDoNothing();
 
   await db.insert(externalSources).values([
@@ -255,6 +271,16 @@ async function main() {
       name: 'DGAC Georeferenced NOTAMs',
       sourceType: 'external',
       providerConfig: { provider: 'dgac', dataset: 'notams', layerId: 'layer-dgac-notams' },
+      refreshIntervalSec: 300,
+      ttlSec: 21600,
+      confidence: 86,
+      enabled: true,
+    },
+    {
+      id: 'source-dgac-rpa',
+      name: 'DGAC RPA NOTAMs',
+      sourceType: 'external',
+      providerConfig: { provider: 'dgac', dataset: 'notams-rpa', layerId: 'layer-dgac-rpa' },
       refreshIntervalSec: 300,
       ttlSec: 21600,
       confidence: 86,

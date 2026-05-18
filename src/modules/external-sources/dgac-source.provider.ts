@@ -13,7 +13,7 @@ type NormalizedFeature = {
 
 type DgacProviderConfig = {
   provider: 'dgac';
-  dataset: 'aerodrome' | 'local-points' | 'firs' | 'notams';
+  dataset: 'aerodrome' | 'local-points' | 'firs' | 'notams' | 'notams-rpa';
   zoneFiles?: string[];
 };
 
@@ -87,6 +87,8 @@ export class DgacSourceProvider {
         return this.fetchFirs(config.zoneFiles ?? this.defaultZoneFiles);
       case 'notams':
         return this.fetchNotams();
+      case 'notams-rpa':
+        return this.fetchNotams({ onlyRpa: true });
       default:
         throw new Error(`Unsupported DGAC dataset '${String((config as { dataset?: unknown }).dataset)}'.`);
     }
@@ -98,7 +100,13 @@ export class DgacSourceProvider {
     }
 
     const dataset = providerConfig.dataset;
-    if (dataset !== 'aerodrome' && dataset !== 'local-points' && dataset !== 'firs' && dataset !== 'notams') {
+    if (
+      dataset !== 'aerodrome' &&
+      dataset !== 'local-points' &&
+      dataset !== 'firs' &&
+      dataset !== 'notams' &&
+      dataset !== 'notams-rpa'
+    ) {
       throw new Error(`Unsupported DGAC dataset '${String(dataset)}'.`);
     }
 
@@ -183,9 +191,11 @@ export class DgacSourceProvider {
       }));
   }
 
-  private async fetchNotams(): Promise<NormalizedFeature[]> {
+  private async fetchNotams(options?: { onlyRpa?: boolean }): Promise<NormalizedFeature[]> {
     const payload = await this.fetchJson<Record<string, DgacNotam[]>>('/api/notamByGeom');
-    const rows = Object.values(payload).flat();
+    const rows = Object.values(payload)
+      .flat()
+      .filter((row) => (options?.onlyRpa ? this.isRpaNotam(row) : true));
 
     return rows.flatMap((row) => {
       const center = this.parseNotamCenter(row);
@@ -202,6 +212,7 @@ export class DgacSourceProvider {
         },
         properties: {
           category: 'notam',
+          isRpa: this.isRpaNotam(row),
           notamId: row.Id,
           series: row.Serie,
           fir: row.Fir,
@@ -220,6 +231,11 @@ export class DgacSourceProvider {
         },
       }];
     });
+  }
+
+  private isRpaNotam(row: DgacNotam) {
+    const searchable = `${row.Serie ?? ''}\n${row.Codigo ?? ''}\n${row.CasillaE ?? ''}\n${row.Texto ?? ''}`;
+    return /\bRPAS?\b|\bDRONE\b/i.test(searchable);
   }
 
   private parseNotamCenter(row: DgacNotam) {
