@@ -12,6 +12,11 @@ export class ExternalSourcesController {
     return this.externalSourcesService.list();
   }
 
+  @Post('sync-all')
+  syncAll() {
+    return this.externalSourcesService.syncAll();
+  }
+
   @Post(':id/sync')
   sync(@Param('id') id: string) {
     return this.externalSourcesService.sync(id);

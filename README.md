@@ -2,6 +2,12 @@
 
 Backend NestJS para una plataforma C4 / Common Operational Picture orientada a operaciones con Guardian devices, UAV/UGV telemetry, companion gateways MAVLink, integraciones ATAK/CoT, capas externas, comandos, alertas y situational awareness en tiempo real.
 
+## Documentacion
+
+- vision tecnica: [`docs/backend-overview.md`](./docs/backend-overview.md)
+- integracion DGAC para frontend: [`docs/dgac-layers-frontend.md`](./docs/dgac-layers-frontend.md)
+- code review del estado actual: [`docs/code-review-2026-05-18.md`](./docs/code-review-2026-05-18.md)
+
 ## Stack
 
 - Node.js 22 LTS
@@ -114,6 +120,7 @@ La API pública puede mantenerse mientras los módulos cambian de ejecución in-
 - `GET /api/map-layers/:id/geojson`
 - `PATCH /api/map-layers/:id`
 - `GET /api/external-sources`
+- `POST /api/external-sources/sync-all`
 - `POST /api/external-sources/:id/sync`
 - `GET /api/health`
 - `GET /api/metrics`
@@ -132,6 +139,7 @@ El controlador `cop` expone los contratos existentes del frontend bajo `/api/v1`
 - `GET /api/v1/incidents/:id`
 - `GET /api/v1/layers`
 - `GET /api/v1/layers/:id`
+- `GET /api/v1/layers/:id/geojson`
 - `GET /api/v1/timeline`
 - `GET /api/v1/timeline/:id`
 - `GET /api/v1/geospatial/fire-hotspots`

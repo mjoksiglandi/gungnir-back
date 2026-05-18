@@ -143,7 +143,7 @@ export const devices = pgTable('devices', {
 });
 
 export const telemetryReports = pgTable('telemetry_reports', {
-  id: varchar('id', { length: 64 }).primaryKey(),
+  id: varchar('id', { length: 64 }).notNull(),
   deviceId: varchar('device_id', { length: 64 }).notNull().references(() => devices.id),
   assetId: varchar('asset_id', { length: 64 }).references(() => assets.id),
   source: varchar('source', { length: 80 }).notNull(),
@@ -184,7 +184,7 @@ export const trackHistory = pgTable('track_history', {
   id: varchar('id', { length: 64 }).primaryKey(),
   assetId: varchar('asset_id', { length: 64 }).notNull().references(() => assets.id),
   deviceId: varchar('device_id', { length: 64 }).notNull().references(() => devices.id),
-  telemetryId: varchar('telemetry_id', { length: 64 }).references(() => telemetryReports.id),
+  telemetryId: varchar('telemetry_id', { length: 64 }),
   timestamp: timestamp('timestamp', { withTimezone: true }).notNull(),
   lat: integer('lat_scaled').notNull(),
   lon: integer('lon_scaled').notNull(),

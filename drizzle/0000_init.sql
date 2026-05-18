@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS devices (
 );
 
 CREATE TABLE IF NOT EXISTS telemetry_reports (
-  id varchar(64) PRIMARY KEY,
+  id varchar(64) NOT NULL,
   device_id varchar(64) NOT NULL REFERENCES devices(id),
   asset_id varchar(64) REFERENCES assets(id),
   source varchar(80) NOT NULL,
@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS track_history (
   id varchar(64) PRIMARY KEY,
   asset_id varchar(64) NOT NULL REFERENCES assets(id),
   device_id varchar(64) NOT NULL REFERENCES devices(id),
-  telemetry_id varchar(64) REFERENCES telemetry_reports(id),
+  telemetry_id varchar(64),
   timestamp timestamptz NOT NULL,
   lat_scaled integer NOT NULL,
   lon_scaled integer NOT NULL,

@@ -63,6 +63,13 @@ export class CopController {
     return row;
   }
 
+  @Get('layers/:id/geojson')
+  async layerGeoJson(@Param('id') id: string) {
+    const row = await this.copService.getLayerGeoJsonV1(id);
+    if (!row) throw new NotFoundException();
+    return row;
+  }
+
   @Get('timeline')
   timeline() {
     return this.copService.listTimelineV1();

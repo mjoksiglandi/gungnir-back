@@ -7,7 +7,6 @@ import {
   alerts,
   assets,
   currentTrackStates,
-  devices,
   incidents,
   mapLayers,
   telemetryReports,
@@ -132,15 +131,53 @@ export class CopService {
       updatedAt: layer.updatedAt.toISOString(),
       source: layer.sourceType,
       name: layer.name,
-      layerType: layer.layerType === 'route' ? 'route' : layer.layerType === 'corridor' ? 'corridor' : 'zone',
+      layerType: layer.layerType === 'route'
+        ? 'route'
+        : layer.layerType === 'corridor'
+          ? 'corridor'
+          : layer.layerType === 'point'
+            ? 'point'
+            : 'zone',
       visibleByDefault: layer.enabled,
       polygon: [] as Array<{ lat: number; lon: number }>,
+      featureCollectionUrl: `/api/v1/layers/${layer.id}/geojson`,
+      metadata: layer.metadata,
     }));
   }
 
   async getLayerV1(id: string) {
     const rows = await this.listLayersV1();
     return rows.find((item) => item.id === id) ?? null;
+  }
+
+  async getLayerGeoJsonV1(id: string) {
+    const [layer] = await this.db.select({ id: mapLayers.id }).from(mapLayers).where(eq(mapLayers.id, id)).limit(1);
+    if (!layer) return null;
+
+    const features = await this.sqlClient.unsafe(
+      `SELECT id, layer_id as "layerId", source, external_id as "externalId",
+              ST_AsGeoJSON(geometry)::json as geometry, properties, timestamp, expires_at as "expiresAt"
+       FROM layer_features
+       WHERE layer_id = $1
+       ORDER BY timestamp DESC`,
+      [id],
+    );
+
+    return {
+      type: 'FeatureCollection',
+      features: features.map((feature) => ({
+        type: 'Feature',
+        id: feature.id,
+        geometry: feature.geometry,
+        properties: {
+          ...feature.properties,
+          source: feature.source,
+          externalId: feature.externalId,
+          timestamp: feature.timestamp,
+          expiresAt: feature.expiresAt,
+        },
+      })),
+    };
   }
 
   async listTimelineV1() {
