@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { hashSync } from 'bcryptjs';
@@ -30,6 +30,20 @@ async function main() {
     prepare: false,
   });
   const db = drizzle(client);
+
+  const obsoleteDgacLayerIds = [
+    'layer-dgac-local-points',
+    'layer-dgac-firs',
+    'layer-dgac-rpa',
+  ];
+  const obsoleteDgacSourceIds = [
+    'source-dgac-local-points',
+    'source-dgac-firs',
+    'source-dgac-rpa',
+  ];
+
+  await db.delete(externalSources).where(inArray(externalSources.id, obsoleteDgacSourceIds));
+  await db.delete(mapLayers).where(inArray(mapLayers.id, obsoleteDgacLayerIds));
 
   await db.insert(organizations).values({
     id: 'org-root',
@@ -145,38 +159,6 @@ async function main() {
       },
     },
     {
-      id: 'layer-dgac-local-points',
-      name: 'DGAC Local Points',
-      layerType: 'point',
-      sourceType: 'external',
-      enabled: false,
-      refreshIntervalSec: 86400,
-      ttlSec: 604800,
-      confidence: 88,
-      metadata: {
-        provider: 'dgac',
-        dataset: 'local-points',
-        geometryType: 'Point',
-        style: { marker: 'nav-point', color: '#455a64' },
-      },
-    },
-    {
-      id: 'layer-dgac-firs',
-      name: 'DGAC FIR Boundaries',
-      layerType: 'zone',
-      sourceType: 'external',
-      enabled: false,
-      refreshIntervalSec: 86400,
-      ttlSec: 604800,
-      confidence: 92,
-      metadata: {
-        provider: 'dgac',
-        dataset: 'firs',
-        geometryType: 'Polygon',
-        style: { stroke: '#ff8f00', fill: '#ff8f00', fillOpacity: 0.08 },
-      },
-    },
-    {
       id: 'layer-dgac-notams',
       name: 'DGAC Georeferenced NOTAMs',
       layerType: 'point',
@@ -190,22 +172,6 @@ async function main() {
         dataset: 'notams',
         geometryType: 'Point',
         style: { marker: 'warning', color: '#d84315' },
-      },
-    },
-    {
-      id: 'layer-dgac-rpa',
-      name: 'DGAC RPA NOTAMs',
-      layerType: 'point',
-      sourceType: 'external',
-      enabled: false,
-      refreshIntervalSec: 300,
-      ttlSec: 21600,
-      confidence: 86,
-      metadata: {
-        provider: 'dgac',
-        dataset: 'notams-rpa',
-        geometryType: 'Point',
-        style: { marker: 'drone', color: '#8e24aa' },
       },
     },
   ]).onConflictDoNothing();
@@ -242,45 +208,10 @@ async function main() {
       enabled: true,
     },
     {
-      id: 'source-dgac-local-points',
-      name: 'DGAC Local Points',
-      sourceType: 'external',
-      providerConfig: { provider: 'dgac', dataset: 'local-points', layerId: 'layer-dgac-local-points' },
-      refreshIntervalSec: 86400,
-      ttlSec: 604800,
-      confidence: 88,
-      enabled: true,
-    },
-    {
-      id: 'source-dgac-firs',
-      name: 'DGAC FIR Boundaries',
-      sourceType: 'external',
-      providerConfig: {
-        provider: 'dgac',
-        dataset: 'firs',
-        layerId: 'layer-dgac-firs',
-        zoneFiles: ['SCIZ', 'SCFZ', 'SCEZ', 'SCTZ', 'SCCZ'],
-      },
-      refreshIntervalSec: 86400,
-      ttlSec: 604800,
-      confidence: 92,
-      enabled: true,
-    },
-    {
       id: 'source-dgac-notams',
       name: 'DGAC Georeferenced NOTAMs',
       sourceType: 'external',
       providerConfig: { provider: 'dgac', dataset: 'notams', layerId: 'layer-dgac-notams' },
-      refreshIntervalSec: 300,
-      ttlSec: 21600,
-      confidence: 86,
-      enabled: true,
-    },
-    {
-      id: 'source-dgac-rpa',
-      name: 'DGAC RPA NOTAMs',
-      sourceType: 'external',
-      providerConfig: { provider: 'dgac', dataset: 'notams-rpa', layerId: 'layer-dgac-rpa' },
       refreshIntervalSec: 300,
       ttlSec: 21600,
       confidence: 86,

@@ -7,8 +7,6 @@ The backend now ingests public DGAC AIP map datasets and exposes them as regular
 Implemented datasets:
 
 - `layer-dgac-aerodromes`
-- `layer-dgac-local-points`
-- `layer-dgac-firs`
 - `layer-dgac-notams`
 
 ## Recommended Frontend Flow
@@ -63,31 +61,6 @@ These sync endpoints require the same JWT auth as the rest of the admin API.
   - `operationHours`
   - `elevation`
   - `aipLink`
-
-### `layer-dgac-local-points`
-
-- `layerType`: `point`
-- Geometry: `Point`
-- Suggested render:
-  - small nav point marker
-  - optional text label from `properties.pointName`
-- Useful properties:
-  - `pointName`
-  - `zoneId`
-  - `altitude`
-  - `frequency`
-  - `elevation`
-
-### `layer-dgac-firs`
-
-- `layerType`: `zone`
-- Geometry: `Polygon`
-- Suggested render:
-  - stroke only by default
-  - transparent fill with low opacity on hover/selection
-- Useful properties:
-  - `zoneCode`
-  - `sourceFile`
 
 ### `layer-dgac-notams`
 
@@ -179,7 +152,6 @@ Example from `GET /api/v1/layers/layer-dgac-aerodromes/geojson`:
 - DGAC layer metadata includes a `featureCollectionUrl` field to simplify lazy loading.
 - `timestamp` and `expiresAt` come from Gungnir, not directly from DGAC.
 - NOTAM geometry is currently represented as a center point. If you want visual circles, derive them client-side from `radiusNm`.
-- FIR layers can be heavy; prefer lazy loading rather than including all geometry inside the bootstrap snapshot.
 - For point layers with many features, cluster markers when zoomed out.
 
 ## Sync Operations

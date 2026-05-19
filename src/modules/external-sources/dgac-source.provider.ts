@@ -13,8 +13,7 @@ type NormalizedFeature = {
 
 type DgacProviderConfig = {
   provider: 'dgac';
-  dataset: 'aerodrome' | 'local-points' | 'firs' | 'notams' | 'notams-rpa';
-  zoneFiles?: string[];
+  dataset: 'aerodrome' | 'notams';
 };
 
 type DgacAerodrome = {
@@ -33,19 +32,6 @@ type DgacAerodrome = {
   AipLink: string;
   AipLinkNombre: string;
   Slug: string;
-  UpdatedAt: string | null;
-  [key: string]: unknown;
-};
-
-type DgacLocalPoint = {
-  Id: number;
-  Latitud: number;
-  Longitud: number;
-  Altitud: number | null;
-  Punto: string;
-  ZonaId: number;
-  Frecuencia: number | null;
-  Elevacion: number | null;
   UpdatedAt: string | null;
   [key: string]: unknown;
 };
@@ -73,7 +59,6 @@ type DgacNotam = {
 export class DgacSourceProvider {
   private readonly logger = new Logger(DgacSourceProvider.name);
   private readonly baseUrl = 'https://aipchile.dgac.gob.cl';
-  private readonly defaultZoneFiles = ['SCIZ', 'SCFZ', 'SCEZ', 'SCTZ', 'SCCZ'];
 
   async fetch(providerConfig: Record<string, unknown>) {
     const config = this.parseConfig(providerConfig);
@@ -81,14 +66,8 @@ export class DgacSourceProvider {
     switch (config.dataset) {
       case 'aerodrome':
         return this.fetchAerodromes();
-      case 'local-points':
-        return this.fetchLocalPoints();
-      case 'firs':
-        return this.fetchFirs(config.zoneFiles ?? this.defaultZoneFiles);
       case 'notams':
         return this.fetchNotams();
-      case 'notams-rpa':
-        return this.fetchNotams({ onlyRpa: true });
       default:
         throw new Error(`Unsupported DGAC dataset '${String((config as { dataset?: unknown }).dataset)}'.`);
     }
@@ -102,22 +81,14 @@ export class DgacSourceProvider {
     const dataset = providerConfig.dataset;
     if (
       dataset !== 'aerodrome' &&
-      dataset !== 'local-points' &&
-      dataset !== 'firs' &&
-      dataset !== 'notams' &&
-      dataset !== 'notams-rpa'
+      dataset !== 'notams'
     ) {
       throw new Error(`Unsupported DGAC dataset '${String(dataset)}'.`);
     }
 
-    const zoneFiles = Array.isArray(providerConfig.zoneFiles)
-      ? providerConfig.zoneFiles.filter((value): value is string => typeof value === 'string')
-      : undefined;
-
     return {
       provider: 'dgac',
       dataset,
-      zoneFiles,
     };
   }
 
@@ -150,52 +121,9 @@ export class DgacSourceProvider {
       }));
   }
 
-  private async fetchLocalPoints(): Promise<NormalizedFeature[]> {
-    const payload = await this.fetchJson<DgacLocalPoint[]>('/api/localPoints');
-    return payload
-      .filter((row) => Number.isFinite(row.Latitud) && Number.isFinite(row.Longitud) && row.Punto)
-      .map((row) => ({
-        externalId: `local-point-${row.Id}`,
-        geometry: {
-          type: 'Point',
-          coordinates: [row.Longitud, row.Latitud],
-        },
-        properties: {
-          category: 'local-point',
-          pointName: row.Punto,
-          zoneId: row.ZonaId,
-          altitude: row.Altitud,
-          frequency: row.Frecuencia,
-          elevation: row.Elevacion,
-          dgacUpdatedAt: row.UpdatedAt,
-        },
-      }));
-  }
-
-  private async fetchFirs(zoneFiles: string[]): Promise<NormalizedFeature[]> {
-    const collections = await Promise.all(zoneFiles.map(async (zoneFile) => ({
-      zoneFile,
-      feature: await this.fetchJson<Record<string, unknown>>(`/json/${zoneFile}.json`),
-    })));
-
-    return collections
-      .filter(({ feature }) => typeof feature.type === 'string' && feature.geometry)
-      .map(({ zoneFile, feature }) => ({
-        externalId: `fir-${zoneFile}`,
-        geometry: feature.geometry as GeoJsonGeometry,
-        properties: {
-          category: 'fir',
-          zoneCode: zoneFile,
-          sourceFile: `/json/${zoneFile}.json`,
-        },
-      }));
-  }
-
-  private async fetchNotams(options?: { onlyRpa?: boolean }): Promise<NormalizedFeature[]> {
+  private async fetchNotams(): Promise<NormalizedFeature[]> {
     const payload = await this.fetchJson<Record<string, DgacNotam[]>>('/api/notamByGeom');
-    const rows = Object.values(payload)
-      .flat()
-      .filter((row) => (options?.onlyRpa ? this.isRpaNotam(row) : true));
+    const rows = Object.values(payload).flat();
 
     return rows.flatMap((row) => {
       const center = this.parseNotamCenter(row);

@@ -124,8 +124,6 @@ This keeps the frontend contract stable while the modern API evolves separately.
 The backend now includes a DGAC provider adapter at [`src/modules/external-sources/dgac-source.provider.ts`](/C:/Users/juan.cornejo/Documents/gugnir%20back/src/modules/external-sources/dgac-source.provider.ts) and seeded layer/source definitions for:
 
 - aerodromes
-- local points
-- FIR boundaries
 - georeferenced NOTAMs
 
 Frontend integration notes live in [`docs/dgac-layers-frontend.md`](/C:/Users/juan.cornejo/Documents/gugnir%20back/docs/dgac-layers-frontend.md).
