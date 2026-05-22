@@ -8,6 +8,7 @@ Backend NestJS para una plataforma C4 / Common Operational Picture orientada a o
 - integracion DGAC para frontend: [`docs/dgac-layers-frontend.md`](./docs/dgac-layers-frontend.md)
 - code review del estado actual: [`docs/code-review-2026-05-18.md`](./docs/code-review-2026-05-18.md)
 - despliegue homelab / PoC: [`docs/homelab-poc.md`](./docs/homelab-poc.md)
+- E2E uplink Guardian V1: [`docs/guardian-e2e-uplink.md`](./docs/guardian-e2e-uplink.md)
 
 ## Stack
 
@@ -175,6 +176,7 @@ Topics soportados:
 
 - `telemetry/{deviceId}/state`
 - `telemetry/{deviceId}/event`
+- `dev/{deviceId}/uplink`
 - `cmd/{deviceId}/request`
 - `cmd/{deviceId}/response`
 - `device/{deviceId}/status`
@@ -186,6 +188,7 @@ La primera versión:
 - consume ACKs y respuestas de comandos
 - consume estado de dispositivos
 - consume telemetría normalizada
+- consume uplinks `guardian.uplink.e2e` cifrados con AES-256-GCM
 
 El backend no habla MAVLink directo. La expectativa es:
 
@@ -205,14 +208,20 @@ docker compose up -d postgres redis mosquitto
 npm install
 ```
 
-3. Migrar y seed:
+3. Configurar clave E2E de flota si se va a probar el uplink Guardian cifrado:
+
+```bash
+GUARDIAN_E2E_KEY_HEX=<64 hex chars>
+```
+
+4. Migrar y seed:
 
 ```bash
 npm run db:migrate
 npm run db:seed
 ```
 
-4. Levantar backend:
+5. Levantar backend:
 
 ```bash
 npm run start:dev
@@ -242,6 +251,7 @@ Incluye pruebas base de:
 - auth token flow
 - command ACK handling
 - MQTT telemetry delegation
+- guardian E2E decrypt y payload parsing
 - health endpoint
 
 ## Notas

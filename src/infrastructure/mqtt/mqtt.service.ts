@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import mqtt, { type MqttClient } from 'mqtt';
@@ -23,15 +28,31 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
     this.client.on('connect', () => {
       this.logger.log(`Connected to MQTT broker ${url}`);
-      void this.client?.subscribe(['telemetry/+/state', 'cmd/+/response', 'device/+/status']);
+      void this.client?.subscribe([
+        'telemetry/+/state',
+        'cmd/+/response',
+        'device/+/status',
+        'dev/+/uplink',
+      ]);
     });
 
     this.client.on('message', (topic, payloadBuffer) => {
       try {
-        const payload = JSON.parse(payloadBuffer.toString()) as Record<string, unknown>;
+        const payload = JSON.parse(payloadBuffer.toString()) as Record<
+          string,
+          unknown
+        >;
 
         if (topic.startsWith('telemetry/')) {
           this.eventEmitter.emit('mqtt.telemetry.state', payload);
+          return;
+        }
+
+        if (
+          topic.startsWith('dev/') &&
+          payload.type === 'guardian.uplink.e2e'
+        ) {
+          this.eventEmitter.emit('mqtt.guardian.uplink', payload);
           return;
         }
 
@@ -44,7 +65,9 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
           this.eventEmitter.emit('mqtt.device.status', payload);
         }
       } catch (error) {
-        this.logger.warn(`Invalid MQTT payload for topic ${topic}: ${String(error)}`);
+        this.logger.warn(
+          `Invalid MQTT payload for topic ${topic}: ${String(error)}`,
+        );
       }
     });
 
