@@ -1,48 +1,48 @@
-# Backend Overview
+# Vision General del Backend
 
-## Summary
+## Resumen
 
-`gungnir-back` is a NestJS monolith organized by domain modules. It exposes:
+`gungnir-back` es un monolito NestJS organizado por modulos de dominio. Expone:
 
-- a modern authenticated API under `/api`
-- a COP compatibility API under `/api/v1`
-- realtime events over Socket.IO on `/realtime`
-- operational integrations through PostgreSQL, Redis, MQTT, and external map sources
+- una API moderna autenticada bajo `/api`
+- una API de compatibilidad COP bajo `/api/v1`
+- eventos en tiempo real mediante Socket.IO en `/realtime`
+- integraciones operacionales con PostgreSQL, Redis, MQTT y fuentes cartograficas externas
 
-The current focus is a C4 / Common Operational Picture backend for assets, telemetry, commands, alerts, missions, geospatial layers, and external feeds.
+El foco actual es un backend C4 / Common Operational Picture para activos, telemetria, comandos, alertas, misiones, capas geoespaciales y fuentes externas.
 
-## Runtime Architecture
+## Arquitectura de Ejecucion
 
-### Application shell
+### Capa principal de la aplicacion
 
-- `src/main.ts`: boots Nest, Swagger, security middleware, validation, and global filters
-- `src/app.module.ts`: composes infrastructure modules and domain modules
-- `src/config/*`: environment parsing and configuration
+- `src/main.ts`: levanta Nest, Swagger, middlewares de seguridad, validacion y filtros globales
+- `src/app.module.ts`: compone modulos de infraestructura y modulos de dominio
+- `src/config/*`: parseo de entorno y configuracion
 
-### Infrastructure
+### Infraestructura
 
-- `src/infrastructure/database/*`: Drizzle + PostgreSQL bindings and schema
-- `src/infrastructure/mqtt/*`: MQTT publishing and message consumption
-- `src/infrastructure/queues/*`: BullMQ queue wiring
+- `src/infrastructure/database/*`: bindings de Drizzle + PostgreSQL y schema
+- `src/infrastructure/mqtt/*`: publicacion MQTT y consumo de mensajes
+- `src/infrastructure/queues/*`: wiring de colas BullMQ
 
-### Domain modules already active
+### Modulos de dominio ya activos
 
-- `auth`: login, refresh, logout, current user
-- `users`: user lookup and supporting auth data
-- `devices`: device registry and current state access
-- `telemetry`: ingestion, history, and MQTT delegation
-- `tracking`: current track and historical track views
-- `commands`: command issuance, ACK handling, and status lifecycle
-- `missions`: mission CRUD and geometry persistence
-- `geofences`: geofence CRUD
-- `alerts`: alert listing, ack, and resolve flow
-- `map-layers`: layer metadata, features, GeoJSON projection, and patching
-- `external-sources`: sync orchestration for external feeds
-- `realtime`: websocket fan-out of domain events
-- `system-health`: health/metrics endpoint surface
-- `cop`: compatibility contract for the current frontend under `/api/v1`
+- `auth`: login, refresh, logout y usuario actual
+- `users`: consulta de usuarios y datos de soporte para autenticacion
+- `devices`: registro de dispositivos y acceso a estado actual
+- `telemetry`: ingestion, historial y delegacion MQTT
+- `tracking`: vistas de track actual e historico
+- `commands`: emision de comandos, manejo de ACK y ciclo de vida de estados
+- `missions`: CRUD de misiones y persistencia de geometria
+- `geofences`: CRUD de geocercas
+- `alerts`: listado de alertas, ack y flujo de resolucion
+- `map-layers`: metadatos de capas, features, proyeccion GeoJSON y patching
+- `external-sources`: orquestacion de sincronizacion para fuentes externas
+- `realtime`: fan-out websocket de eventos de dominio
+- `system-health`: superficie de endpoints de salud y metricas
+- `cop`: contrato de compatibilidad para el frontend actual bajo `/api/v1`
 
-### Modules present as placeholders or future bounded contexts
+### Modulos presentes como placeholders o bounded contexts futuros
 
 - `guardian`
 - `mavlink`
@@ -59,78 +59,78 @@ The current focus is a C4 / Common Operational Picture backend for assets, telem
 - `audit`
 - `incidents`
 
-## Data Model Highlights
+## Puntos Clave del Modelo de Datos
 
-Core tables live in [`src/infrastructure/database/schema.ts`](../src/infrastructure/database/schema.ts).
+Las tablas principales viven en [`src/infrastructure/database/schema.ts`](../src/infrastructure/database/schema.ts).
 
-- Identity and access: `users`, `roles`, `permissions`, `refresh_tokens`
-- Operational assets: `organizations`, `units`, `assets`, `devices`
-- Telemetry and tracking: `telemetry_reports`, `current_track_states`, `track_history`
-- Mission space: `missions`, `geofences`, `incidents`, `alerts`
-- Commanding: `commands`
-- Map data: `map_layers`, `layer_features`, `external_sources`
-- Auditability: `audit_logs`
+- Identidad y acceso: `users`, `roles`, `permissions`, `refresh_tokens`
+- Activos operacionales: `organizations`, `units`, `assets`, `devices`
+- Telemetria y tracking: `telemetry_reports`, `current_track_states`, `track_history`
+- Espacio de mision: `missions`, `geofences`, `incidents`, `alerts`
+- Comando y control: `commands`
+- Datos cartograficos: `map_layers`, `layer_features`, `external_sources`
+- Auditabilidad: `audit_logs`
 
-PostGIS is used for layer, mission, alert, and fence geometry. TimescaleDB is used for `telemetry_reports`.
+PostGIS se usa para geometria de capas, misiones, alertas y geocercas. TimescaleDB se usa para `telemetry_reports`.
 
-## Request And Event Flow
+## Flujo de Requests y Eventos
 
-### Telemetry
+### Telemetria
 
-1. `POST /api/telemetry/ingest` or MQTT event enters `TelemetryService`.
-2. A row is inserted into `telemetry_reports`.
-3. `current_track_states` is upserted.
-4. `track_history` is appended.
-5. Domain events `telemetry.received` and `track.updated` are emitted.
-6. `RealtimeGateway` republishes those events to websocket clients.
+1. `POST /api/telemetry/ingest` o un evento MQTT entra a `TelemetryService`.
+2. Se inserta una fila en `telemetry_reports`.
+3. Se hace upsert sobre `current_track_states`.
+4. Se agrega una entrada en `track_history`.
+5. Se emiten eventos de dominio `telemetry.received` y `track.updated`.
+6. `RealtimeGateway` republica esos eventos hacia clientes websocket.
 
-### Commands
+### Comandos
 
-1. `POST /api/commands` creates a command row.
-2. MQTT publishes the outbound payload to the device topic.
-3. ACK / response handlers update status and emit command-related events.
+1. `POST /api/commands` crea una fila de comando.
+2. MQTT publica el payload saliente al topic del dispositivo.
+3. Los handlers de ACK / response actualizan el estado y emiten eventos asociados al comando.
 
-### External map sources
+### Fuentes cartograficas externas
 
-1. `POST /api/external-sources/:id/sync` or `sync-all` triggers `ExternalSourcesService`.
-2. A provider adapter normalizes source data into internal feature records.
-3. Features are written into `layer_features`.
-4. `map_layers.lastUpdatedAt` is refreshed.
-5. `layer.synced` is emitted for websocket and consumer updates.
+1. `POST /api/external-sources/:id/sync` o `sync-all` dispara `ExternalSourcesService`.
+2. Un adapter proveedor normaliza los datos de la fuente hacia registros internos de features.
+3. Las features se escriben en `layer_features`.
+4. Se refresca `map_layers.lastUpdatedAt`.
+5. Se emite `layer.synced` para websocket y consumidores aguas abajo.
 
-## API Surface
+## Superficie de API
 
-### Modern API
+### API moderna
 
-The primary authenticated API covers auth, devices, telemetry, tracks, commands, missions, geofences, alerts, map layers, external source sync, and health.
+La API autenticada principal cubre auth, devices, telemetry, tracks, commands, missions, geofences, alerts, map layers, sincronizacion de fuentes externas y health.
 
-Swagger is served at `/api/docs`.
+Swagger se sirve en `/api/docs`.
 
-### COP compatibility API
+### API de compatibilidad COP
 
-The compatibility layer under `/api/v1` currently exposes:
+La capa de compatibilidad bajo `/api/v1` hoy expone:
 
-- operations bootstrap and snapshot
-- assets and alerts
-- incidents
-- layers, including GeoJSON URLs
+- bootstrap y snapshot operacional
+- activos y alertas
+- incidentes
+- capas, incluyendo URLs GeoJSON
 - timeline
-- fire hotspot feed
+- feed de hotspots de incendio
 
-This keeps the frontend contract stable while the modern API evolves separately.
+Esto mantiene estable el contrato del frontend mientras la API moderna evoluciona por separado.
 
-## DGAC Integration Status
+## Estado de la Integracion DGAC
 
-The backend now includes a DGAC provider adapter at [`src/modules/external-sources/dgac-source.provider.ts`](../src/modules/external-sources/dgac-source.provider.ts) and seeded layer/source definitions for:
+El backend ya incluye un adapter proveedor DGAC en [`src/modules/external-sources/dgac-source.provider.ts`](../src/modules/external-sources/dgac-source.provider.ts) y definiciones seed de capas/fuentes para:
 
-- aerodromes
-- georeferenced NOTAMs
+- aerodromos
+- NOTAMs georreferenciados
 
-Frontend integration notes live in [`docs/dgac-layers-frontend.md`](./dgac-layers-frontend.md).
+Las notas de integracion para frontend viven en [`docs/dgac-layers-frontend.md`](./dgac-layers-frontend.md).
 
-## Developer Workflow
+## Flujo de Trabajo de Desarrollo
 
-### Local startup
+### Arranque local
 
 1. `docker compose up -d postgres redis mosquitto`
 2. `npm install`
@@ -138,17 +138,17 @@ Frontend integration notes live in [`docs/dgac-layers-frontend.md`](./dgac-layer
 4. `npm run db:seed`
 5. `npm run start:dev`
 
-### Quality commands
+### Comandos de calidad
 
 - `npm run typecheck`
 - `npm test`
 - `npm run lint`
 
-At the moment, typecheck and tests pass, while lint still reports existing issues that should be cleaned up before treating the backend as fully green.
+Hoy `typecheck` y las pruebas pasan, mientras que `lint` todavia reporta problemas existentes que conviene limpiar antes de considerar el backend completamente en verde.
 
-## Current Gaps
+## Brechas Actuales
 
-- lint is not yet clean across the repository
-- several modules exist as scaffolding more than full integrations
-- external-source sync lacks background scheduling and richer retry/reporting behavior
-- there is still coupling between compatibility responses and internal persistence formats
+- `lint` todavia no esta limpio en todo el repositorio
+- varios modulos existen mas como scaffolding que como integraciones completas
+- la sincronizacion de fuentes externas no tiene aun scheduling en background ni un flujo mas rico de retry/reporting
+- todavia existe acoplamiento entre las respuestas de compatibilidad y los formatos internos de persistencia

@@ -1,88 +1,88 @@
-# Code Review 2026-05-18
+# Revision de Codigo 2026-05-18
 
-## Scope Reviewed
+## Alcance Revisado
 
-Focus areas reviewed from the current backend state:
+Las areas revisadas sobre el estado actual del backend fueron:
 
 - `src/modules/external-sources/*`
 - `src/modules/cop/*`
 - `src/modules/map-layers/*`
 - `src/infrastructure/database/schema.ts`
 - `drizzle/0000_init.sql`
-- supporting docs and seed updates
+- documentacion de apoyo y cambios en seeds
 
-## Findings
+## Hallazgos
 
-### P1 - DGAC sync can erase the last good layer snapshot before the replacement write succeeds
+### P1 - La sincronizacion DGAC puede borrar la ultima capa valida antes de que la escritura de reemplazo termine con exito
 
-Files:
+Archivos:
 
 - [`src/modules/external-sources/external-sources.service.ts:89`](../src/modules/external-sources/external-sources.service.ts#L89)
 
-Why it matters:
+Por que importa:
 
-The DGAC flow deletes all existing `layer_features` for the source before inserting the refreshed dataset. If the insert fails after the delete, the API leaves the layer empty and also marks the source as failed. That creates an avoidable outage for consumers that would be better served by the previous successful snapshot.
+El flujo DGAC elimina todas las `layer_features` existentes de la fuente antes de insertar el dataset refrescado. Si la insercion falla despues del delete, la API deja la capa vacia y ademas marca la fuente como fallida. Eso genera una interrupcion evitable para los consumidores, que estarian mejor servidos con el ultimo snapshot exitoso.
 
-Recommendation:
+Recomendacion:
 
-Wrap delete + insert + layer update in a transaction, or stage the new rows first and swap them only after the write succeeds.
+Encapsular delete + insert + update de capa en una transaccion, o bien staging de las filas nuevas y swap solo cuando la escritura termine correctamente.
 
-### P1 - Telemetry integrity constraints were removed without a replacement strategy
+### P1 - Se removieron restricciones de integridad de telemetria sin una estrategia de reemplazo
 
-Files:
+Archivos:
 
 - [`src/infrastructure/database/schema.ts:145`](../src/infrastructure/database/schema.ts#L145)
 - [`src/infrastructure/database/schema.ts:184`](../src/infrastructure/database/schema.ts#L184)
 - [`drizzle/0000_init.sql:135`](../drizzle/0000_init.sql#L135)
 - [`drizzle/0000_init.sql:175`](../drizzle/0000_init.sql#L175)
 
-Why it matters:
+Por que importa:
 
-`telemetry_reports.id` is no longer a primary key and `track_history.telemetry_id` no longer references it. That removes uniqueness and referential integrity for telemetry records, but the application still treats telemetry IDs as durable identifiers in API responses and history rows. If this change was needed for TimescaleDB compatibility, it still needs a replacement design such as a composite key, hypertable-safe uniqueness, or an explicit surrogate key plus indexed query path.
+`telemetry_reports.id` ya no es primary key y `track_history.telemetry_id` ya no lo referencia. Eso elimina unicidad e integridad referencial para los registros de telemetria, pero la aplicacion sigue tratando los IDs de telemetria como identificadores durables en respuestas API y filas historicas. Si este cambio fue necesario por compatibilidad con TimescaleDB, igual necesita un diseno de reemplazo, por ejemplo una clave compuesta, unicidad compatible con hypertables, o una surrogate key explicita con un camino de consulta indexado.
 
-Recommendation:
+Recomendacion:
 
-Document the intended Timescale constraint model and add a replacement uniqueness/integrity strategy before relying on this schema in production.
+Documentar el modelo de restricciones esperado para Timescale y agregar una estrategia de unicidad/integridad de reemplazo antes de depender de este schema en produccion.
 
-### P2 - `sync-all` is fail-fast, so one bad source aborts the batch and skips the remaining enabled sources
+### P2 - `sync-all` falla en modo fail-fast, por lo que una fuente mala aborta el lote y omite las fuentes habilitadas restantes
 
-Files:
+Archivos:
 
 - [`src/modules/external-sources/external-sources.service.ts:25`](../src/modules/external-sources/external-sources.service.ts#L25)
 
-Why it matters:
+Por que importa:
 
-`syncAll()` awaits each source sequentially and rethrows as soon as one source fails. In practice that means operators get a 500 even if some sources already succeeded, and later sources are never attempted. For external integrations this usually creates noisy operations and unnecessary stale layers.
+`syncAll()` espera cada fuente en secuencia y relanza el error apenas una falla. En la practica eso significa que operaciones recibe un 500 incluso si algunas fuentes ya sincronizaron bien, y las fuentes posteriores ni siquiera se intentan. Para integraciones externas esto suele generar ruido operacional y capas innecesariamente stale.
 
-Recommendation:
+Recomendacion:
 
-Return a per-source result set with `success` and `error` fields, keep syncing the rest of the enabled sources, and reserve a full request failure for cases where the batch itself could not run.
+Devolver un resultado por fuente con campos `success` y `error`, seguir sincronizando el resto de las habilitadas y reservar un fallo total solo para casos donde el lote completo no pudo ejecutarse.
 
-### P3 - The compatibility COP payload can emit `[object Object]` as the mission label
+### P3 - El payload COP de compatibilidad puede emitir `[object Object]` como etiqueta de mision
 
-Files:
+Archivos:
 
 - [`src/modules/cop/cop.service.ts:70`](../src/modules/cop/cop.service.ts#L70)
 
-Why it matters:
+Por que importa:
 
-`String(asset.metadata?.role ?? 'Operational tasking')` will stringify non-string metadata values using the default object formatter. If `role` is stored as an object or array, the frontend receives a degraded label instead of a meaningful mission description.
+`String(asset.metadata?.role ?? 'Operational tasking')` convierte valores no string usando el formatter por defecto de objetos. Si `role` se guarda como objeto o array, el frontend recibe una etiqueta degradada en vez de una descripcion de mision util.
 
-Recommendation:
+Recomendacion:
 
-Narrow `role` to a string before returning it, and fall back cleanly when it is not a string.
+Acotar `role` a string antes de devolverlo y aplicar un fallback limpio cuando no lo sea.
 
-## Validation Notes
+## Notas de Validacion
 
-- `npm run typecheck`: passes
-- `npm test`: passes
-- `npm run lint`: fails
+- `npm run typecheck`: pasa
+- `npm test`: pasa
+- `npm run lint`: falla
 
-Lint currently reports repository-wide issues, including some in the reviewed paths:
+Hoy `lint` reporta problemas de alcance repositorio, incluyendo algunos en las rutas revisadas:
 
-- unsafe `any` projections in GeoJSON mapping code
-- `String(...)` coercion warnings in `cop.service.ts` and `external-sources.service.ts`
+- proyecciones `any` inseguras en el mapeo GeoJSON
+- advertencias por coercion `String(...)` en `cop.service.ts` y `external-sources.service.ts`
 
-## Overall Assessment
+## Evaluacion General
 
-The backend is moving in a good direction for frontend compatibility and DGAC ingestion, but the current state is not fully production-ready. The biggest concern is data safety during external sync plus the telemetry schema constraint change, which both deserve follow-up before treating this as a stable operational baseline.
+El backend va en buena direccion para compatibilidad con frontend e ingestion DGAC, pero el estado actual todavia no es completamente production-ready. La preocupacion mas importante es la seguridad de datos durante la sincronizacion externa, junto con el cambio de restricciones del schema de telemetria; ambos merecen seguimiento antes de tratar esta base como una linea operacional estable.
