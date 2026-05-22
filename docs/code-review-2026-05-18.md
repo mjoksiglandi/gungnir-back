@@ -17,7 +17,7 @@ Focus areas reviewed from the current backend state:
 
 Files:
 
-- [`src/modules/external-sources/external-sources.service.ts:89`](/C:/Users/juan.cornejo/Documents/gugnir%20back/src/modules/external-sources/external-sources.service.ts:89)
+- [`src/modules/external-sources/external-sources.service.ts:89`](../src/modules/external-sources/external-sources.service.ts#L89)
 
 Why it matters:
 
@@ -31,10 +31,10 @@ Wrap delete + insert + layer update in a transaction, or stage the new rows firs
 
 Files:
 
-- [`src/infrastructure/database/schema.ts:145`](/C:/Users/juan.cornejo/Documents/gugnir%20back/src/infrastructure/database/schema.ts:145)
-- [`src/infrastructure/database/schema.ts:184`](/C:/Users/juan.cornejo/Documents/gugnir%20back/src/infrastructure/database/schema.ts:184)
-- [`drizzle/0000_init.sql:135`](/C:/Users/juan.cornejo/Documents/gugnir%20back/drizzle/0000_init.sql:135)
-- [`drizzle/0000_init.sql:175`](/C:/Users/juan.cornejo/Documents/gugnir%20back/drizzle/0000_init.sql:175)
+- [`src/infrastructure/database/schema.ts:145`](../src/infrastructure/database/schema.ts#L145)
+- [`src/infrastructure/database/schema.ts:184`](../src/infrastructure/database/schema.ts#L184)
+- [`drizzle/0000_init.sql:135`](../drizzle/0000_init.sql#L135)
+- [`drizzle/0000_init.sql:175`](../drizzle/0000_init.sql#L175)
 
 Why it matters:
 
@@ -48,7 +48,7 @@ Document the intended Timescale constraint model and add a replacement uniquenes
 
 Files:
 
-- [`src/modules/external-sources/external-sources.service.ts:25`](/C:/Users/juan.cornejo/Documents/gugnir%20back/src/modules/external-sources/external-sources.service.ts:25)
+- [`src/modules/external-sources/external-sources.service.ts:25`](../src/modules/external-sources/external-sources.service.ts#L25)
 
 Why it matters:
 
@@ -62,7 +62,7 @@ Return a per-source result set with `success` and `error` fields, keep syncing t
 
 Files:
 
-- [`src/modules/cop/cop.service.ts:70`](/C:/Users/juan.cornejo/Documents/gugnir%20back/src/modules/cop/cop.service.ts:70)
+- [`src/modules/cop/cop.service.ts:70`](../src/modules/cop/cop.service.ts#L70)
 
 Why it matters:
 

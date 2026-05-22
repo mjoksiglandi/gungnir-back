@@ -14,7 +14,6 @@ export const envSchema = z.object({
   REFRESH_TOKEN_TTL: z.string().default('30d'),
   CORS_ORIGIN: z.string().min(1),
   FRONTEND_URL: z.string().min(1),
-  EMQX_MANAGEMENT_URL: z.string().optional(),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

@@ -1,9 +1,10 @@
-node_modules
+.git
 dist
-.env
-.env.homelab
-.DS_Store
-coverage
+node_modules
+docs
 *.log
+.env
+.env.local
+.env.homelab
 .run-out.log
 .run-err.log

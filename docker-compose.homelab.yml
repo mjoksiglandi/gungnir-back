@@ -1,17 +1,33 @@
 services:
+  frontend:
+    build:
+      context: ${FRONTEND_DIR:-../gungnir v2}
+      dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile}
+      args:
+        BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:4000/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.example.com/api}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-https://api.example.com/realtime}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://app.example.com}
+    container_name: gungnir-frontend
+    restart: unless-stopped
+    env_file:
+      - .env.homelab
+    environment:
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: gungnir-backend
+    restart: unless-stopped
     env_file:
-      - .env.example
-    environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://gungnir:gungnir@postgres:5432/gungnir}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      MQTT_URL: ${MQTT_URL:-mqtt://mosquitto:1883}
-    ports:
-      - "4000:4000"
+      - .env.homelab
     depends_on:
       postgres:
         condition: service_healthy
@@ -19,14 +35,14 @@ services:
         condition: service_started
       mosquitto:
         condition: service_started
-    volumes:
-      - .:/app
-      - /app/node_modules
-    command: sh -c "npm install && npm run db:migrate && npm run db:seed && npm run start:dev"
+    ports:
+      - "4000:4000"
+    command: sh -c "npm run db:migrate && npm run db:seed && node dist/main.js"
 
   postgres:
     image: timescale/timescaledb-ha:pg17
     container_name: gungnir-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: gungnir
       POSTGRES_USER: gungnir
@@ -45,12 +61,14 @@ services:
   redis:
     image: redis:7-alpine
     container_name: gungnir-redis
+    restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
 
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: gungnir-mosquitto
+    restart: unless-stopped
     ports:
       - "${MQTT_PORT:-1883}:1883"
     volumes:
@@ -58,12 +76,18 @@ services:
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
 
-  nats:
-    image: nats:2.11-alpine
-    container_name: gungnir-nats
-    ports:
-      - "4222:4222"
-    profiles: ["optional"]
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: gungnir-cloudflared
+    restart: unless-stopped
+    env_file:
+      - .env.homelab
+    command: tunnel run
+    depends_on:
+      - frontend
+      - backend
+    profiles:
+      - tunnel
 
 volumes:
   postgres_data:

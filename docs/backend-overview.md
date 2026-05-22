@@ -61,7 +61,7 @@ The current focus is a C4 / Common Operational Picture backend for assets, telem
 
 ## Data Model Highlights
 
-Core tables live in [`src/infrastructure/database/schema.ts`](/C:/Users/juan.cornejo/Documents/gugnir%20back/src/infrastructure/database/schema.ts).
+Core tables live in [`src/infrastructure/database/schema.ts`](../src/infrastructure/database/schema.ts).
 
 - Identity and access: `users`, `roles`, `permissions`, `refresh_tokens`
 - Operational assets: `organizations`, `units`, `assets`, `devices`
@@ -121,18 +121,18 @@ This keeps the frontend contract stable while the modern API evolves separately.
 
 ## DGAC Integration Status
 
-The backend now includes a DGAC provider adapter at [`src/modules/external-sources/dgac-source.provider.ts`](/C:/Users/juan.cornejo/Documents/gugnir%20back/src/modules/external-sources/dgac-source.provider.ts) and seeded layer/source definitions for:
+The backend now includes a DGAC provider adapter at [`src/modules/external-sources/dgac-source.provider.ts`](../src/modules/external-sources/dgac-source.provider.ts) and seeded layer/source definitions for:
 
 - aerodromes
 - georeferenced NOTAMs
 
-Frontend integration notes live in [`docs/dgac-layers-frontend.md`](/C:/Users/juan.cornejo/Documents/gugnir%20back/docs/dgac-layers-frontend.md).
+Frontend integration notes live in [`docs/dgac-layers-frontend.md`](./dgac-layers-frontend.md).
 
 ## Developer Workflow
 
 ### Local startup
 
-1. `docker compose up -d postgres redis emqx`
+1. `docker compose up -d postgres redis mosquitto`
 2. `npm install`
 3. `npm run db:migrate`
 4. `npm run db:seed`

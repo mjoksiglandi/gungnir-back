@@ -7,6 +7,7 @@ Backend NestJS para una plataforma C4 / Common Operational Picture orientada a o
 - vision tecnica: [`docs/backend-overview.md`](./docs/backend-overview.md)
 - integracion DGAC para frontend: [`docs/dgac-layers-frontend.md`](./docs/dgac-layers-frontend.md)
 - code review del estado actual: [`docs/code-review-2026-05-18.md`](./docs/code-review-2026-05-18.md)
+- despliegue homelab / PoC: [`docs/homelab-poc.md`](./docs/homelab-poc.md)
 
 ## Stack
 
@@ -195,7 +196,7 @@ El backend no habla MAVLink directo. La expectativa es:
 1. Levantar infraestructura:
 
 ```bash
-docker compose up -d postgres redis emqx
+docker compose up -d postgres redis mosquitto
 ```
 
 2. Instalar dependencias:
@@ -248,3 +249,14 @@ Incluye pruebas base de:
 - `telemetry_reports` se crea como hypertable de TimescaleDB.
 - El proyecto usa PostGIS para geometrías en misiones, geofences, alertas y features de capas.
 - Algunas integraciones especializadas como `guardian`, `mavlink`, `atak` y `cot` están preparadas como bounded contexts para la siguiente iteración, pero todavía no tienen adapters de producción completos.
+## Publicacion de imagenes
+
+El repositorio incluye el workflow [`publish-image.yml`](./.github/workflows/publish-image.yml) para construir y publicar la imagen Docker en `GHCR`.
+
+- imagen: `ghcr.io/<github-owner>/gungnir-back`
+- triggers: cada `push`, tags `v*` y ejecucion manual
+- tags publicados: nombre de rama, SHA del commit y `latest` solo en la rama por defecto
+
+No requiere secrets adicionales para publicar en `GHCR`; usa `GITHUB_TOKEN` con permiso `packages: write`.
+
+La parte de despliegue remoto al homelab todavia no esta conectada. El siguiente paso deberia consumir esta imagen desde `GHCR` usando `image:` en lugar de `build:`.
