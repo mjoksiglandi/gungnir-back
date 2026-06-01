@@ -133,16 +133,17 @@ Las notas de integracion para frontend viven en [`docs/dgac-layers-frontend.md`]
 ### Arranque local
 
 1. `docker compose up -d postgres redis mosquitto`
-2. `npm install`
-3. `npm run db:migrate`
-4. `npm run db:seed`
-5. `npm run start:dev`
+2. `corepack enable`
+3. `pnpm install`
+4. `pnpm run db:migrate`
+5. `pnpm run db:seed`
+6. `pnpm run start:dev`
 
 ### Comandos de calidad
 
-- `npm run typecheck`
-- `npm test`
-- `npm run lint`
+- `pnpm run typecheck`
+- `pnpm test`
+- `pnpm run lint`
 
 Hoy `typecheck` y las pruebas pasan, mientras que `lint` todavia reporta problemas existentes que conviene limpiar antes de considerar el backend completamente en verde.
 

@@ -122,14 +122,51 @@ async function main() {
   await db.insert(mapLayers).values([
     {
       id: 'layer-fire-intel',
-      name: 'Fire Intel',
-      layerType: 'heat-zones',
+      name: 'Active Fires - NASA FIRMS',
+      layerType: 'point',
       sourceType: 'fire-intel',
       enabled: true,
       refreshIntervalSec: 300,
+      ttlSec: 3600,
+      confidence: 88,
+      metadata: {
+        provider: 'natural-hazards',
+        dataset: 'fires',
+        geometryType: 'Point',
+        style: { marker: 'fire', color: '#ff6b00', glow: true },
+      },
+    },
+    {
+      id: 'layer-earthquakes',
+      name: 'Earthquakes - USGS M2.5+ 24h',
+      layerType: 'point',
+      sourceType: 'external',
+      enabled: true,
+      refreshIntervalSec: 300,
       ttlSec: 900,
-      confidence: 83,
-      metadata: { color: '#ff5a36' },
+      confidence: 92,
+      metadata: {
+        provider: 'natural-hazards',
+        dataset: 'earthquakes',
+        geometryType: 'Point',
+        style: { marker: 'earthquake', color: '#ff9500', scaleBy: 'magnitude' },
+      },
+    },
+    {
+      id: 'layer-weather-hazards',
+      name: 'Weather & Natural Hazards - EONET/NWS',
+      layerType: 'point',
+      sourceType: 'weather',
+      enabled: true,
+      refreshIntervalSec: 600,
+      ttlSec: 1800,
+      confidence: 80,
+      metadata: {
+        provider: 'natural-hazards',
+        dataset: 'weather',
+        geometryType: 'Point',
+        style: { marker: 'weather', color: '#e040fb', glow: true },
+      },
     },
     {
       id: 'layer-air-traffic',
@@ -176,14 +213,51 @@ async function main() {
     },
   ]).onConflictDoNothing();
 
+  await db.update(mapLayers).set({
+    name: 'Active Fires - NASA FIRMS',
+    layerType: 'point',
+    sourceType: 'fire-intel',
+    enabled: true,
+    refreshIntervalSec: 300,
+    ttlSec: 3600,
+    confidence: 88,
+    metadata: {
+      provider: 'natural-hazards',
+      dataset: 'fires',
+      geometryType: 'Point',
+      style: { marker: 'fire', color: '#ff6b00', glow: true },
+    },
+    updatedAt: now(),
+  }).where(eq(mapLayers.id, 'layer-fire-intel'));
+
   await db.insert(externalSources).values([
     {
       id: 'source-fire-hotspots',
-      name: 'Mock Fire Hotspots',
+      name: 'NASA FIRMS Active Fires',
       sourceType: 'fire-intel',
-      providerConfig: { provider: 'mock', region: 'CL-RM' },
+      providerConfig: { provider: 'natural-hazards', dataset: 'fires', layerId: 'layer-fire-intel', limit: 2000 },
+      refreshIntervalSec: 300,
+      ttlSec: 3600,
+      confidence: 88,
+      enabled: true,
+    },
+    {
+      id: 'source-usgs-earthquakes',
+      name: 'USGS Earthquakes M2.5+ 24h',
+      sourceType: 'external',
+      providerConfig: { provider: 'natural-hazards', dataset: 'earthquakes', layerId: 'layer-earthquakes', limit: 1000 },
       refreshIntervalSec: 300,
       ttlSec: 900,
+      confidence: 92,
+      enabled: true,
+    },
+    {
+      id: 'source-weather-hazards',
+      name: 'NASA EONET + NOAA/NWS Hazards',
+      sourceType: 'weather',
+      providerConfig: { provider: 'natural-hazards', dataset: 'weather', layerId: 'layer-weather-hazards', limit: 300 },
+      refreshIntervalSec: 600,
+      ttlSec: 1800,
       confidence: 80,
       enabled: true,
     },
@@ -218,6 +292,17 @@ async function main() {
       enabled: true,
     },
   ]).onConflictDoNothing();
+
+  await db.update(externalSources).set({
+    name: 'NASA FIRMS Active Fires',
+    sourceType: 'fire-intel',
+    providerConfig: { provider: 'natural-hazards', dataset: 'fires', layerId: 'layer-fire-intel', limit: 2000 },
+    refreshIntervalSec: 300,
+    ttlSec: 3600,
+    confidence: 88,
+    enabled: true,
+    updatedAt: now(),
+  }).where(eq(externalSources.id, 'source-fire-hotspots'));
 
   await db.insert(alerts).values({
     id: 'alert-001',

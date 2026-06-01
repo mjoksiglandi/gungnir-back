@@ -1,7 +1,7 @@
 services:
   frontend:
     build:
-      context: ${FRONTEND_DIR:-../gungnir v2}
+      context: ${FRONTEND_DIR:-../gungnir-front}
       dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile}
       args:
         BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:4000/api}
@@ -37,7 +37,7 @@ services:
         condition: service_started
     ports:
       - "4000:4000"
-    command: sh -c "npm run db:migrate && npm run db:seed && node dist/main.js"
+    command: sh -c "pnpm run db:migrate && pnpm run db:seed && node dist/main.js"
 
   postgres:
     image: timescale/timescaledb-ha:pg17

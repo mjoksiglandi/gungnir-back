@@ -4,6 +4,7 @@
   "private": true,
   "description": "NestJS backend for Gungnir C4 / Common Operational Picture platform.",
   "license": "UNLICENSED",
+  "packageManager": "pnpm@10.12.1",
   "scripts": {
     "build": "nest build",
     "start": "node dist/main.js",
