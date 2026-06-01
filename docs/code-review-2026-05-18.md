@@ -74,9 +74,9 @@ Acotar `role` a string antes de devolverlo y aplicar un fallback limpio cuando n
 
 ## Notas de Validacion
 
-- `npm run typecheck`: pasa
-- `npm test`: pasa
-- `npm run lint`: falla
+- `pnpm run typecheck`: pasa
+- `pnpm test`: pasa
+- `pnpm run lint`: falla
 
 Hoy `lint` reporta problemas de alcance repositorio, incluyendo algunos en las rutas revisadas:
 

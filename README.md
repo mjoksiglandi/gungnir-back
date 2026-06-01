@@ -6,6 +6,7 @@ Backend NestJS para una plataforma C4 / Common Operational Picture orientada a o
 
 - vision tecnica: [`docs/backend-overview.md`](./docs/backend-overview.md)
 - integracion DGAC para frontend: [`docs/dgac-layers-frontend.md`](./docs/dgac-layers-frontend.md)
+- integracion de natural hazards estilo Osiris: [`docs/natural-hazards-osiris-integration.md`](./docs/natural-hazards-osiris-integration.md)
 - code review del estado actual: [`docs/code-review-2026-05-18.md`](./docs/code-review-2026-05-18.md)
 - despliegue homelab / PoC: [`docs/homelab-poc.md`](./docs/homelab-poc.md)
 
@@ -202,20 +203,21 @@ docker compose up -d postgres redis mosquitto
 2. Instalar dependencias:
 
 ```bash
-npm install
+corepack enable
+pnpm install
 ```
 
 3. Migrar y seed:
 
 ```bash
-npm run db:migrate
-npm run db:seed
+pnpm run db:migrate
+pnpm run db:seed
 ```
 
 4. Levantar backend:
 
 ```bash
-npm run start:dev
+pnpm run start:dev
 ```
 
 Swagger queda en [http://localhost:4000/api/docs](http://localhost:4000/api/docs).
@@ -233,8 +235,8 @@ Device seed:
 ## Pruebas
 
 ```bash
-npm test
-npm run test:e2e
+pnpm test
+pnpm run test:e2e
 ```
 
 Incluye pruebas base de:

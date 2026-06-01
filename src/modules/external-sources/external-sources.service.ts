@@ -8,6 +8,9 @@ import { DRIZZLE_DB, POSTGRES_CONNECTION } from '@/infrastructure/database/datab
 import type { AppDb } from '@/infrastructure/database/database.types';
 import { externalSources, mapLayers } from '@/infrastructure/database/schema';
 import { DgacSourceProvider } from './dgac-source.provider';
+import { NaturalHazardsSourceProvider, type NormalizedHazardFeature } from './natural-hazards-source.provider';
+
+type NormalizedExternalFeature = NormalizedHazardFeature;
 
 @Injectable()
 export class ExternalSourcesService implements OnModuleInit {
@@ -18,6 +21,7 @@ export class ExternalSourcesService implements OnModuleInit {
     @Inject(POSTGRES_CONNECTION) private readonly sqlClient: postgres.Sql,
     private readonly eventEmitter: EventEmitter2,
     private readonly dgacSourceProvider: DgacSourceProvider,
+    private readonly naturalHazardsSourceProvider: NaturalHazardsSourceProvider,
   ) {}
 
   list() {
@@ -91,18 +95,36 @@ export class ExternalSourcesService implements OnModuleInit {
   }
 
   private async runSync(source: typeof externalSources.$inferSelect) {
-    const provider = String(source.providerConfig.provider ?? 'mock');
+    const provider = typeof source.providerConfig.provider === 'string' ? source.providerConfig.provider : 'mock';
     if (provider === 'dgac') {
       return this.syncDgacSource(source);
+    }
+    if (provider === 'natural-hazards') {
+      return this.syncNaturalHazardsSource(source);
     }
     return this.syncMockSource(source);
   }
 
   private async syncDgacSource(source: typeof externalSources.$inferSelect) {
+    return this.syncNormalizedSource(source, await this.dgacSourceProvider.fetch(source.providerConfig), 'dgac');
+  }
+
+  private async syncNaturalHazardsSource(source: typeof externalSources.$inferSelect) {
+    return this.syncNormalizedSource(
+      source,
+      await this.naturalHazardsSourceProvider.fetch(source.providerConfig),
+      'natural-hazards',
+    );
+  }
+
+  private async syncNormalizedSource(
+    source: typeof externalSources.$inferSelect,
+    normalizedFeatures: NormalizedExternalFeature[],
+    provider: string,
+  ) {
     const layerId = this.resolveLayerId(source);
     const fetchedAt = new Date();
     const expiresAt = new Date(fetchedAt.getTime() + source.ttlSec * 1000);
-    const normalizedFeatures = await this.dgacSourceProvider.fetch(source.providerConfig);
     const rows = normalizedFeatures.map((feature) => ({
       id: this.buildFeatureId(source.id, feature.externalId),
       external_id: feature.externalId,
@@ -110,37 +132,41 @@ export class ExternalSourcesService implements OnModuleInit {
       properties: {
         ...feature.properties,
         sourceName: source.name,
-        provider: 'dgac',
+        provider,
       },
     }));
 
-    await this.sqlClient.unsafe(
-      `DELETE FROM layer_features
-       WHERE layer_id = $1 AND source = $2`,
-      [layerId, source.id],
-    );
-
-    if (rows.length > 0) {
-      await this.sqlClient.unsafe(
-        `INSERT INTO layer_features (id, layer_id, source, external_id, geometry, properties, timestamp, expires_at)
-         SELECT
-           item.id,
-           $1,
-           $2,
-           item.external_id,
-           ST_SetSRID(ST_GeomFromGeoJSON(item.geometry), 4326),
-           item.properties::jsonb,
-           $3::timestamptz,
-           $4::timestamptz
-         FROM jsonb_to_recordset($5::jsonb) AS item(id text, external_id text, geometry text, properties jsonb)`,
-        [layerId, source.id, fetchedAt.toISOString(), expiresAt.toISOString(), JSON.stringify(rows)],
+    await this.sqlClient.begin(async (transaction) => {
+      await transaction.unsafe(
+        `DELETE FROM layer_features
+         WHERE layer_id = $1 AND source = $2`,
+        [layerId, source.id],
       );
-    }
 
-    await this.db.update(mapLayers).set({
-      lastUpdatedAt: fetchedAt,
-      updatedAt: fetchedAt,
-    }).where(eq(mapLayers.id, layerId));
+      if (rows.length > 0) {
+        await transaction.unsafe(
+          `INSERT INTO layer_features (id, layer_id, source, external_id, geometry, properties, timestamp, expires_at)
+           SELECT
+             item.id,
+             $1,
+             $2,
+             item.external_id,
+             ST_SetSRID(ST_GeomFromGeoJSON(item.geometry), 4326),
+             item.properties::jsonb,
+             $3::timestamptz,
+             $4::timestamptz
+           FROM jsonb_to_recordset($5::jsonb) AS item(id text, external_id text, geometry text, properties jsonb)`,
+          [layerId, source.id, fetchedAt.toISOString(), expiresAt.toISOString(), JSON.stringify(rows)],
+        );
+      }
+
+      await transaction.unsafe(
+        `UPDATE map_layers
+         SET last_updated_at = $2::timestamptz, updated_at = $2::timestamptz
+         WHERE id = $1`,
+        [layerId, fetchedAt.toISOString()],
+      );
+    });
 
     this.eventEmitter.emit(DOMAIN_EVENTS.layerSynced, { layerId, sourceId: source.id });
     return {
@@ -148,7 +174,7 @@ export class ExternalSourcesService implements OnModuleInit {
       layerId,
       sourceId: source.id,
       featureCount: rows.length,
-      provider: 'dgac',
+      provider,
       syncedAt: fetchedAt.toISOString(),
     };
   }
