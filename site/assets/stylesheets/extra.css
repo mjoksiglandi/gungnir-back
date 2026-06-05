@@ -1,0 +1,21 @@
+:root {
+  --md-primary-fg-color: #233142;
+  --md-primary-fg-color--light: #3f5871;
+  --md-primary-fg-color--dark: #18222e;
+  --md-accent-fg-color: #c97b00;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  letter-spacing: -0.02em;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 0.8rem;
+}
+
+.md-typeset code {
+  border-radius: 0.35rem;
+}

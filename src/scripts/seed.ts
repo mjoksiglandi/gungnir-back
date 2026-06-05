@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { hashSync } from 'bcryptjs';
@@ -30,6 +30,22 @@ async function main() {
     prepare: false,
   });
   const db = drizzle(client);
+
+  await client.unsafe(`
+    DELETE FROM user_roles ur
+    USING user_roles dup
+    WHERE ur.ctid < dup.ctid
+      AND ur.user_id = dup.user_id
+      AND ur.role_id = dup.role_id
+  `);
+
+  await client.unsafe(`
+    DELETE FROM role_permissions rp
+    USING role_permissions dup
+    WHERE rp.ctid < dup.ctid
+      AND rp.role_id = dup.role_id
+      AND rp.permission_id = dup.permission_id
+  `);
 
   const obsoleteDgacLayerIds = [
     'layer-dgac-local-points',
@@ -85,16 +101,32 @@ async function main() {
     await db.insert(permissions).values(permission).onConflictDoNothing();
   }
 
-  await db.insert(userRoles).values({
-    userId: 'user-admin',
-    roleId: 'role-admin',
-  }).onConflictDoNothing();
+  const adminRoleExists = await db
+    .select({ userId: userRoles.userId })
+    .from(userRoles)
+    .where(and(eq(userRoles.userId, 'user-admin'), eq(userRoles.roleId, 'role-admin')))
+    .limit(1);
+
+  if (adminRoleExists.length === 0) {
+    await db.insert(userRoles).values({
+      userId: 'user-admin',
+      roleId: 'role-admin',
+    });
+  }
 
   for (const permission of permissionRows) {
-    await db.insert(rolePermissions).values({
-      roleId: 'role-admin',
-      permissionId: permission.id,
-    }).onConflictDoNothing();
+    const rolePermissionExists = await db
+      .select({ roleId: rolePermissions.roleId })
+      .from(rolePermissions)
+      .where(and(eq(rolePermissions.roleId, 'role-admin'), eq(rolePermissions.permissionId, permission.id)))
+      .limit(1);
+
+    if (rolePermissionExists.length === 0) {
+      await db.insert(rolePermissions).values({
+        roleId: 'role-admin',
+        permissionId: permission.id,
+      });
+    }
   }
 
   await db.insert(assets).values({

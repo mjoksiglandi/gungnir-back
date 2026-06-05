@@ -25,6 +25,6 @@ export class UsersService {
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
       .where(eq(userRoles.userId, userId));
 
-    return rows.map((row) => row.roleName);
+    return [...new Set(rows.map((row) => row.roleName))];
   }
 }

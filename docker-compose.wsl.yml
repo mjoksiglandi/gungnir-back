@@ -1,27 +1,33 @@
 services:
+  frontend:
+    build:
+      context: ${FRONTEND_DIR:-../gugnir v2}
+      dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile}
+      args:
+        BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:4000/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:4000/realtime}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+    container_name: gungnir-frontend
+    restart: unless-stopped
+    env_file:
+      - .env.wsl
+    environment:
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: gungnir-backend
     restart: unless-stopped
-    environment:
-      NODE_ENV: development
-      PORT: 4000
-      DATABASE_URL: postgres://gungnir:gungnir@postgres:5432/gungnir
-      REDIS_URL: redis://redis:6379
-      MQTT_URL: mqtt://mosquitto:1883
-      MQTT_USERNAME: ""
-      MQTT_PASSWORD: ""
-      GUARDIAN_E2E_KEY_HEX: cf0ce2085baa4326de1ce3fa470e92959607261d896903d15d1ff60ab748cc14
-      JWT_ACCESS_SECRET: change-me-access
-      JWT_REFRESH_SECRET: change-me-refresh
-      CORS_ORIGIN: http://localhost:3000
-      FRONTEND_URL: http://localhost:3000
-      ACCESS_TOKEN_TTL: 15m
-      REFRESH_TOKEN_TTL: 30d
-    ports:
-      - "4000:4000"
+    env_file:
+      - .env.wsl
     depends_on:
       postgres:
         condition: service_healthy
@@ -29,16 +35,13 @@ services:
         condition: service_started
       mosquitto:
         condition: service_started
-    volumes:
-      - .:/app
-      - /app/node_modules
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
     command: >-
-      sh -c "corepack enable &&
-      pnpm install &&
-      node docker/wait-for-postgres.js &&
-      pnpm run db:migrate &&
-      pnpm run db:seed &&
-      pnpm run start:dev"
+      sh -c "node docker/wait-for-postgres.js &&
+      npm run db:migrate &&
+      npm run db:seed &&
+      node dist/main.js"
 
   postgres:
     image: timescale/timescaledb-ha:pg17
@@ -71,18 +74,11 @@ services:
     container_name: gungnir-mosquitto
     restart: unless-stopped
     ports:
-      - "${MQTT_PORT:-1883}:1883"
+      - "${MQTT_PORT:-1884}:1883"
     volumes:
       - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
-
-  nats:
-    image: nats:2.11-alpine
-    container_name: gungnir-nats
-    ports:
-      - "4222:4222"
-    profiles: ["optional"]
 
 volumes:
   postgres_data:

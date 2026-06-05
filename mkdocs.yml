@@ -1,0 +1,50 @@
+site_name: Gungnir Back
+site_description: Backend NestJS para la plataforma Gungnir C4 / COP
+
+theme:
+  name: material
+  language: es
+  palette:
+    - scheme: default
+      primary: blue grey
+      accent: amber
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+nav:
+  - Inicio: index.md
+  - Arquitectura:
+      - Resumen: architecture/overview.md
+      - Modulos: architecture/modules.md
+  - Operacion:
+      - Desarrollo local: operations/local-development.md
+      - Entornos y despliegue: operations/environments.md
+  - Contratos:
+      - HTTP API: contracts/http-api.md
+      - Eventos y mensajeria: contracts/events-and-messaging.md
+      - Guardian E2E uplink: contracts/guardian-e2e-uplink.md
+  - Integraciones:
+      - Fuentes externas y capas: integrations/external-sources.md
+  - Referencia:
+      - Configuracion: reference/configuration.md
+  - Roadmap: roadmap.md

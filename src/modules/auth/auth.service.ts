@@ -96,7 +96,7 @@ export class AuthService {
       throw new UnauthorizedException('User not found.');
     }
 
-    const roles = await this.usersService.getRolesForUser(user.id);
+    const roles = [...new Set(await this.usersService.getRolesForUser(user.id))];
     return {
       id: user.id,
       email: user.email,
@@ -108,14 +108,15 @@ export class AuthService {
 
   private async issueTokenPair(userId: string, email: string, roles: string[]) {
     const jti = randomUUID();
+    const uniqueRoles = [...new Set(roles)];
 
     const accessToken = await this.jwtService.signAsync(
-      { sub: userId, email, roles },
+      { sub: userId, email, roles: uniqueRoles },
       { secret: this.accessSecret, expiresIn: this.ttlToSeconds(this.accessTtl) },
     );
 
     const refreshToken = await this.jwtService.signAsync(
-      { sub: userId, email, roles, jti },
+      { sub: userId, email, roles: uniqueRoles, jti },
       { secret: this.refreshSecret, expiresIn: this.ttlToSeconds(this.refreshTtl) },
     );
 
