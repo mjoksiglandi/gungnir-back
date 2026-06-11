@@ -29,16 +29,8 @@ services:
         condition: service_started
       mosquitto:
         condition: service_started
-    volumes:
-      - .:/app
-      - /app/node_modules
     command: >-
-      sh -c "corepack enable &&
-      pnpm install &&
-      node docker/wait-for-postgres.js &&
-      pnpm run db:migrate &&
-      pnpm run db:seed &&
-      pnpm run start:dev"
+      node dist/main.js
 
   postgres:
     image: timescale/timescaledb-ha:pg17
@@ -54,7 +46,7 @@ services:
       timeout: 5s
       retries: 10
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/home/postgres/pgdata/data
       - ./docker/postgres-init:/docker-entrypoint-initdb.d
@@ -64,14 +56,14 @@ services:
     container_name: gungnir-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT:-6380}:6379"
 
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: gungnir-mosquitto
     restart: unless-stopped
     ports:
-      - "${MQTT_PORT:-1883}:1883"
+      - "${MQTT_PORT:-1884}:1883"
     volumes:
       - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto_data:/mosquitto/data

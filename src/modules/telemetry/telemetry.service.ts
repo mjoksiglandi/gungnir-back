@@ -1,13 +1,13 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { desc, eq } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { DOMAIN_EVENTS } from '@/contracts/domain-events';
 import { DRIZZLE_DB, POSTGRES_CONNECTION } from '@/infrastructure/database/database.tokens';
 import type { AppDb } from '@/infrastructure/database/database.types';
-import { currentTrackStates, devices, telemetryReports, trackHistory } from '@/infrastructure/database/schema';
+import { assets, currentTrackStates, devices, telemetryReports, trackHistory } from '@/infrastructure/database/schema';
 import type postgres from 'postgres';
-import type { TelemetryIngestDto } from './dto/telemetry.schemas';
+import { telemetryIngestSchema, type TelemetryIngestDto } from './dto/telemetry.schemas';
 
 const SCALE = 1_000_000;
 
@@ -19,11 +19,57 @@ export class TelemetryService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async ingest(input: TelemetryIngestDto) {
-    const [device] = await this.db.select().from(devices).where(eq(devices.id, input.deviceId)).limit(1);
-    if (!device) {
-      throw new NotFoundException(`Device '${input.deviceId}' was not found.`);
+  private buildAutoCreatedAssetId(deviceId: string) {
+    const fingerprint = createHash('sha1').update(deviceId).digest('hex').slice(0, 16);
+    return `asset-auto-${fingerprint}`;
+  }
+
+  private async ensureDeviceExists(input: TelemetryIngestDto) {
+    const [existingDevice] = await this.db.select().from(devices).where(eq(devices.id, input.deviceId)).limit(1);
+    if (existingDevice) {
+      return existingDevice;
     }
+
+    const assetId = this.buildAutoCreatedAssetId(input.deviceId);
+
+    await this.db.insert(assets).values({
+      id: assetId,
+      name: `Auto ${input.deviceId}`,
+      assetType: 'autonomous',
+      platformType: 'generic',
+      status: 'nominal',
+      metadata: {
+        autoCreated: true,
+        autoCreatedFrom: 'telemetry',
+        sourceType: input.source,
+        deviceId: input.deviceId,
+      },
+    }).onConflictDoNothing();
+
+    await this.db.insert(devices).values({
+      id: input.deviceId,
+      assetId,
+      deviceType: 'telemetry-endpoint',
+      sourceType: input.source,
+      externalId: input.deviceId,
+      status: 'online',
+      lastSeenAt: new Date(input.timestamp),
+      metadata: {
+        autoCreated: true,
+        autoCreatedFrom: 'telemetry',
+      },
+    }).onConflictDoNothing();
+
+    const [createdDevice] = await this.db.select().from(devices).where(eq(devices.id, input.deviceId)).limit(1);
+    if (!createdDevice) {
+      throw new NotFoundException(`Device '${input.deviceId}' could not be created.`);
+    }
+
+    return createdDevice;
+  }
+
+  async ingest(input: TelemetryIngestDto) {
+    const device = await this.ensureDeviceExists(input);
 
     const assetId = input.assetId ?? device.assetId;
     const telemetryId = `telemetry-${randomUUID().slice(0, 8)}`;
@@ -32,6 +78,12 @@ export class TelemetryService {
     const latScaled = Math.round(input.lat * SCALE);
     const lonScaled = Math.round(input.lon * SCALE);
     const timestamp = new Date(input.timestamp);
+    const altitudeM = input.altitudeM != null ? Math.round(input.altitudeM) : null;
+    const headingDeg = input.headingDeg != null ? Math.round(input.headingDeg) : null;
+    const groundSpeedMs = input.groundSpeedMs != null ? Math.round(input.groundSpeedMs) : null;
+    const verticalSpeedMs = input.verticalSpeedMs != null ? Math.round(input.verticalSpeedMs) : null;
+    const batteryPct = input.batteryPct != null ? Math.round(input.batteryPct) : null;
+    const signalQuality = input.signalQuality != null ? Math.round(input.signalQuality) : null;
 
     await this.sqlClient.unsafe(
       `
@@ -56,12 +108,12 @@ export class TelemetryService {
         input.lat,
         latScaled,
         lonScaled,
-        input.altitudeM ?? null,
-        input.headingDeg ?? null,
-        input.groundSpeedMs ?? null,
-        input.verticalSpeedMs ?? null,
-        input.batteryPct ?? null,
-        input.signalQuality ?? null,
+        altitudeM,
+        headingDeg,
+        groundSpeedMs,
+        verticalSpeedMs,
+        batteryPct,
+        signalQuality,
         input.mode ?? null,
         input.armed ?? null,
         JSON.stringify(input.rawPayload ?? {}),
@@ -78,9 +130,9 @@ export class TelemetryService {
           timestamp,
           lat: latScaled,
           lon: lonScaled,
-          altitudeM: input.altitudeM ? Math.round(input.altitudeM) : null,
-          headingDeg: input.headingDeg ? Math.round(input.headingDeg) : null,
-          speedMs: input.groundSpeedMs ? Math.round(input.groundSpeedMs) : null,
+          altitudeM,
+          headingDeg,
+          speedMs: groundSpeedMs,
           status: 'active',
           metadata: { source: input.source },
         })
@@ -90,9 +142,9 @@ export class TelemetryService {
             timestamp,
             lat: latScaled,
             lon: lonScaled,
-            altitudeM: input.altitudeM ? Math.round(input.altitudeM) : null,
-            headingDeg: input.headingDeg ? Math.round(input.headingDeg) : null,
-            speedMs: input.groundSpeedMs ? Math.round(input.groundSpeedMs) : null,
+            altitudeM,
+            headingDeg,
+            speedMs: groundSpeedMs,
             updatedAt: new Date(),
           },
         });
@@ -105,8 +157,8 @@ export class TelemetryService {
         timestamp,
         lat: latScaled,
         lon: lonScaled,
-        headingDeg: input.headingDeg ? Math.round(input.headingDeg) : null,
-        speedMs: input.groundSpeedMs ? Math.round(input.groundSpeedMs) : null,
+        headingDeg,
+        speedMs: groundSpeedMs,
         metadata: { source: input.source },
       });
     }
@@ -156,29 +208,11 @@ export class TelemetryService {
 
   @OnEvent('mqtt.telemetry.state')
   async handleMqttTelemetry(payload: Record<string, unknown>) {
-    if (typeof payload.deviceId !== 'string' || typeof payload.timestamp !== 'string' || typeof payload.source !== 'string') {
-      return;
-    }
-    if (typeof payload.lat !== 'number' || typeof payload.lon !== 'number') {
+    const parsed = telemetryIngestSchema.safeParse(payload);
+    if (!parsed.success) {
       return;
     }
 
-    await this.ingest({
-      deviceId: payload.deviceId,
-      assetId: typeof payload.assetId === 'string' ? payload.assetId : undefined,
-      source: payload.source,
-      timestamp: payload.timestamp,
-      lat: payload.lat,
-      lon: payload.lon,
-      altitudeM: typeof payload.altitudeM === 'number' ? payload.altitudeM : undefined,
-      headingDeg: typeof payload.headingDeg === 'number' ? payload.headingDeg : undefined,
-      groundSpeedMs: typeof payload.groundSpeedMs === 'number' ? payload.groundSpeedMs : undefined,
-      verticalSpeedMs: typeof payload.verticalSpeedMs === 'number' ? payload.verticalSpeedMs : undefined,
-      batteryPct: typeof payload.batteryPct === 'number' ? payload.batteryPct : undefined,
-      signalQuality: typeof payload.signalQuality === 'number' ? payload.signalQuality : undefined,
-      mode: typeof payload.mode === 'string' ? payload.mode : undefined,
-      armed: typeof payload.armed === 'boolean' ? payload.armed : undefined,
-      rawPayload: payload,
-    });
+    await this.ingest(parsed.data);
   }
 }

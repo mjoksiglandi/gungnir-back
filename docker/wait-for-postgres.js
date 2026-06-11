@@ -18,11 +18,11 @@ async function waitForPostgres() {
 
     try {
       await sql.unsafe("select 1");
-      await sql.end({ timeout: 1 });
+      await sql.end().catch(() => {});
       process.exit(0);
     } catch (error) {
       console.log("Waiting for postgres...");
-      await sql.end({ timeout: 1 }).catch(() => {});
+      await sql.end().catch(() => {});
       await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
     }
   }

@@ -4,9 +4,6 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { hashSync } from 'bcryptjs';
 import {
-  alerts,
-  assets,
-  devices,
   externalSources,
   mapLayers,
   organizations,
@@ -14,7 +11,6 @@ import {
   refreshTokens,
   rolePermissions,
   roles,
-  telemetryReports,
   units,
   userRoles,
   users,
@@ -57,9 +53,18 @@ async function main() {
     'source-dgac-firs',
     'source-dgac-rpa',
   ];
+  const obsoleteDummyAssetIds = ['asset-uav-001'];
+  const obsoleteDummyDeviceIds = ['device-uav-001'];
+  const obsoleteDummyAlertIds = ['alert-001'];
+  const obsoleteDummyTelemetryIds = ['telemetry-seed-001'];
 
   await db.delete(externalSources).where(inArray(externalSources.id, obsoleteDgacSourceIds));
   await db.delete(mapLayers).where(inArray(mapLayers.id, obsoleteDgacLayerIds));
+  await client.unsafe(`DELETE FROM telemetry_reports WHERE id IN (${obsoleteDummyTelemetryIds.map((id) => `'${id}'`).join(', ')})`);
+  await client.unsafe(`DELETE FROM telemetry_reports WHERE asset_id IN (${obsoleteDummyAssetIds.map((id) => `'${id}'`).join(', ')}) OR device_id IN (${obsoleteDummyDeviceIds.map((id) => `'${id}'`).join(', ')})`);
+  await client.unsafe(`DELETE FROM alerts WHERE id IN (${obsoleteDummyAlertIds.map((id) => `'${id}'`).join(', ')}) OR asset_id IN (${obsoleteDummyAssetIds.map((id) => `'${id}'`).join(', ')}) OR device_id IN (${obsoleteDummyDeviceIds.map((id) => `'${id}'`).join(', ')})`);
+  await client.unsafe(`DELETE FROM devices WHERE id IN (${obsoleteDummyDeviceIds.map((id) => `'${id}'`).join(', ')}) OR asset_id IN (${obsoleteDummyAssetIds.map((id) => `'${id}'`).join(', ')})`);
+  await client.unsafe(`DELETE FROM assets WHERE id IN (${obsoleteDummyAssetIds.map((id) => `'${id}'`).join(', ')})`);
 
   await db.insert(organizations).values({
     id: 'org-root',
@@ -128,28 +133,6 @@ async function main() {
       });
     }
   }
-
-  await db.insert(assets).values({
-    id: 'asset-uav-001',
-    unitId: 'unit-alpha',
-    name: 'Guardian UAV 001',
-    assetType: 'uav',
-    platformType: 'quadrotor',
-    status: 'nominal',
-    metadata: { vendor: 'Guardian', role: 'ISR' },
-  }).onConflictDoNothing();
-
-  await db.insert(devices).values({
-    id: 'device-uav-001',
-    assetId: 'asset-uav-001',
-    deviceType: 'companion-agent',
-    sourceType: 'mqtt',
-    apiKeyHash: hashSync('device-secret-001', 10),
-    externalId: 'companion-uav-001',
-    status: 'online',
-    lastSeenAt: now(),
-    metadata: { protocol: 'mavlink-companion' },
-  }).onConflictDoNothing();
 
   await db.insert(mapLayers).values([
     {
@@ -335,47 +318,6 @@ async function main() {
     enabled: true,
     updatedAt: now(),
   }).where(eq(externalSources.id, 'source-fire-hotspots'));
-
-  await db.insert(alerts).values({
-    id: 'alert-001',
-    type: 'thermal_spike',
-    severity: 'high',
-    status: 'open',
-    source: 'sensor-net',
-    assetId: 'asset-uav-001',
-    deviceId: 'device-uav-001',
-    message: 'Thermal anomaly detected near sector east.',
-    metadata: { sector: 'east-1' },
-  }).onConflictDoNothing();
-
-  const telemetryExists = await db.select({ id: telemetryReports.id }).from(telemetryReports).where(eq(telemetryReports.id, 'telemetry-seed-001'));
-  if (telemetryExists.length === 0) {
-    await client.unsafe(`
-      INSERT INTO telemetry_reports (
-        id, device_id, asset_id, source, timestamp, position, lat_scaled, lon_scaled,
-        altitude_m, heading_deg, ground_speed_ms, vertical_speed_ms, battery_pct, signal_quality,
-        mode, armed, raw_payload
-      ) VALUES (
-        'telemetry-seed-001',
-        'device-uav-001',
-        'asset-uav-001',
-        'guardian',
-        NOW(),
-        ST_SetSRID(ST_MakePoint(-70.6605, -33.4489), 4326)::geography,
-        -33448900,
-        -70660500,
-        120,
-        95,
-        18,
-        0,
-        84,
-        91,
-        'AUTO',
-        true,
-        '{}'::jsonb
-      )
-    `);
-  }
 
   await db.delete(refreshTokens);
 

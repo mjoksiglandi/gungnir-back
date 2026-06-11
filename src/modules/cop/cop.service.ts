@@ -13,6 +13,9 @@ import {
 } from '@/infrastructure/database/schema';
 
 const SCALE = 1_000_000;
+const LEGACY_DUMMY_ASSET_IDS = new Set(['asset-uav-001']);
+const LEGACY_DUMMY_DEVICE_IDS = new Set(['device-uav-001']);
+const LEGACY_DUMMY_ALERT_IDS = new Set(['alert-001']);
 
 @Injectable()
 export class CopService {
@@ -36,7 +39,7 @@ export class CopService {
   }
 
   async listAssetsV1() {
-    const rows = await this.db.select().from(assets);
+    const rows = (await this.db.select().from(assets)).filter((asset) => !LEGACY_DUMMY_ASSET_IDS.has(asset.id));
     const tracks = await this.db.select().from(currentTrackStates);
     const telemetry = await this.db
       .select()
@@ -78,7 +81,12 @@ export class CopService {
   }
 
   async listAlertsV1() {
-    const rows = await this.db.select().from(alerts).orderBy(desc(alerts.createdAt));
+    const rows = (await this.db.select().from(alerts).orderBy(desc(alerts.createdAt))).filter(
+      (alert) =>
+        !LEGACY_DUMMY_ALERT_IDS.has(alert.id)
+        && !LEGACY_DUMMY_ASSET_IDS.has(alert.assetId ?? '')
+        && !LEGACY_DUMMY_DEVICE_IDS.has(alert.deviceId ?? ''),
+    );
     return rows.map((alert) => ({
       id: alert.id,
       kind: 'alert',
@@ -182,7 +190,11 @@ export class CopService {
 
   async listTimelineV1() {
     const alertsV1 = await this.listAlertsV1();
-    const telemetry = await this.db.select().from(telemetryReports).orderBy(desc(telemetryReports.timestamp)).limit(25);
+    const telemetry = (await this.db.select().from(telemetryReports).orderBy(desc(telemetryReports.timestamp)).limit(25)).filter(
+      (row) =>
+        !LEGACY_DUMMY_ASSET_IDS.has(row.assetId ?? '')
+        && !LEGACY_DUMMY_DEVICE_IDS.has(row.deviceId),
+    );
     return [
       ...telemetry.map((row) => ({
         id: row.id,
