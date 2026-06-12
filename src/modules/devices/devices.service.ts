@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { DRIZZLE_DB } from '@/infrastructure/database/database.tokens';
 import type { AppDb } from '@/infrastructure/database/database.types';
 import { commands, currentTrackStates, devices, telemetryReports } from '@/infrastructure/database/schema';
+import type { DevicePlatformDto } from './dto/device.schemas';
 
 @Injectable()
 export class DevicesService {
@@ -26,6 +27,7 @@ export class DevicesService {
     assetId?: string;
     deviceType: string;
     sourceType: string;
+    platformType?: DevicePlatformDto;
     externalId?: string;
     status?: 'online' | 'offline' | 'degraded' | 'retired';
     metadata?: Record<string, unknown>;
@@ -36,6 +38,7 @@ export class DevicesService {
       assetId: input.assetId ?? null,
       deviceType: input.deviceType,
       sourceType: input.sourceType,
+      platformType: input.platformType ?? 'unknown',
       externalId: input.externalId ?? null,
       status: input.status ?? 'offline',
       metadata: input.metadata ?? {},
@@ -47,15 +50,17 @@ export class DevicesService {
     assetId?: string;
     deviceType: string;
     sourceType: string;
+    platformType?: DevicePlatformDto;
     externalId?: string;
     status?: 'online' | 'offline' | 'degraded' | 'retired';
     metadata?: Record<string, unknown>;
   }) {
-    await this.get(id);
+    const existingDevice = await this.get(id);
     await this.db.update(devices).set({
       assetId: input.assetId ?? null,
       deviceType: input.deviceType,
       sourceType: input.sourceType,
+      platformType: input.platformType ?? existingDevice.platformType,
       externalId: input.externalId ?? null,
       status: input.status ?? 'offline',
       metadata: input.metadata ?? {},

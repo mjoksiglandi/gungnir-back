@@ -29,6 +29,31 @@ Defaults observables en el repo:
 
 Si el repo hermano del frontend no vive en la ruta esperada, sobreescribe `FRONTEND_DIR`.
 
+## Windows nativo + servicios en WSL/Docker
+
+Para desarrollo diario en Windows, hoy conviene tratar este esquema como baseline:
+
+- `gungnir-back` corriendo nativo en Windows sobre `http://localhost:4000`
+- frontend `Next.js` corriendo nativo en Windows sobre `http://localhost:3000`
+- PostgreSQL expuesto en `localhost:5433`
+- Redis expuesto en `localhost:6380`
+- Mosquitto expuesto en `localhost:1884`
+
+Motivo principal:
+
+- evita depender del reenvio `Windows -> WSL -> contenedor` para el puerto `4000`
+- conserva Compose para los servicios de infraestructura
+- simplifica el debugging de `Next.js` y `NestJS` desde el host
+
+Smoke test recomendado:
+
+1. `docker compose up -d postgres redis mosquitto`
+2. `corepack pnpm run start:dev` en `gungnir-back`
+3. `corepack pnpm dev` en `gugnir v2`
+4. validar `http://localhost:4000/api/health`
+5. validar `http://localhost:4000/api/docs`
+6. validar `http://localhost:3000`
+
 ## Homelab PoC
 
 `docker-compose.homelab.yml` empaqueta frontend, backend, PostgreSQL, Redis, Mosquitto y un perfil opcional con Cloudflare Tunnel.

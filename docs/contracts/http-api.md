@@ -21,6 +21,11 @@ La aplicacion configura `app.setGlobalPrefix('api')`, por lo que todos los contr
 - `GET /api/devices/:id/telemetry`
 - `GET /api/devices/:id/commands`
 
+Campos relevantes de configuracion:
+
+- `platformType` o `P`: `air | sea | land | manpack | vehicle | unknown`
+- `callsign` no vive en `devices`; se configura por mision en `assignedDevices`
+
 ### Telemetry y tracking
 
 - `POST /api/telemetry/ingest`
@@ -42,6 +47,10 @@ La aplicacion configura `app.setGlobalPrefix('api')`, por lo que todos los contr
 - `GET /api/missions/:id`
 - `PATCH /api/missions/:id`
 - `DELETE /api/missions/:id`
+
+Campos relevantes de mision:
+
+- `assignedDevices`: arreglo de `{ deviceId, callsign, metadata }`
 - `GET /api/geofences`
 - `POST /api/geofences`
 - `GET /api/geofences/:id`

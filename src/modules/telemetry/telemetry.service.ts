@@ -51,6 +51,7 @@ export class TelemetryService {
       assetId,
       deviceType: 'telemetry-endpoint',
       sourceType: input.source,
+      platformType: 'unknown',
       externalId: input.deviceId,
       status: 'online',
       lastSeenAt: new Date(input.timestamp),

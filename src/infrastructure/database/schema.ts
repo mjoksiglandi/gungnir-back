@@ -7,6 +7,7 @@ import {
   integer,
   jsonb,
   pgEnum,
+  primaryKey,
   pgTable,
   text,
   timestamp,
@@ -47,6 +48,14 @@ export const deviceStatusEnum = pgEnum('device_status', [
   'offline',
   'degraded',
   'retired',
+]);
+export const devicePlatformEnum = pgEnum('device_platform', [
+  'air',
+  'sea',
+  'land',
+  'manpack',
+  'vehicle',
+  'unknown',
 ]);
 export const commandStatusEnum = pgEnum('command_status', [
   'pending',
@@ -216,6 +225,7 @@ export const devices = pgTable('devices', {
   assetId: varchar('asset_id', { length: 64 }).references(() => assets.id),
   deviceType: varchar('device_type', { length: 80 }).notNull(),
   sourceType: varchar('source_type', { length: 80 }).notNull(),
+  platformType: devicePlatformEnum('platform_type').notNull().default('unknown'),
   apiKeyHash: text('api_key_hash'),
   externalId: varchar('external_id', { length: 160 }),
   status: deviceStatusEnum('status').notNull().default('offline'),
@@ -437,6 +447,36 @@ export const missions = pgTable('missions', {
     .notNull()
     .defaultNow(),
 });
+
+export const missionDevices = pgTable(
+  'mission_devices',
+  {
+    missionId: varchar('mission_id', { length: 64 })
+      .notNull()
+      .references(() => missions.id, { onDelete: 'cascade' }),
+    deviceId: varchar('device_id', { length: 64 })
+      .notNull()
+      .references(() => devices.id, { onDelete: 'cascade' }),
+    callsign: varchar('callsign', { length: 80 }).notNull(),
+    metadata: jsonb('metadata')
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    missionDevicesPk: primaryKey({
+      name: 'mission_devices_pkey',
+      columns: [table.missionId, table.deviceId],
+    }),
+    missionDevicesDeviceIdx: index('mission_devices_device_idx').on(table.deviceId),
+  }),
+);
 
 export const geofences = pgTable('geofences', {
   id: varchar('id', { length: 64 }).primaryKey(),

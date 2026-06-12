@@ -45,6 +45,40 @@ pnpm run start:dev
 
 Swagger queda en `http://localhost:4000/api/docs`.
 
+## Modo recomendado en Windows
+
+Si trabajas con frontend en Windows y servicios auxiliares dentro de WSL/Docker, el flujo validado hoy es:
+
+1. Desde `gungnir back`, levanta solo infraestructura:
+
+```bash
+docker compose up -d postgres redis mosquitto
+```
+
+2. Mantén `.env` apuntando a los puertos publicados en Windows:
+
+```bash
+DATABASE_URL=postgres://gungnir:gungnir@127.0.0.1:5433/gungnir
+REDIS_URL=redis://127.0.0.1:6380
+MQTT_URL=mqtt://127.0.0.1:1884
+PORT=4000
+```
+
+3. Ejecuta el backend nativo en Windows:
+
+```bash
+corepack enable
+corepack pnpm install
+corepack pnpm run db:migrate
+corepack pnpm run db:seed
+corepack pnpm run start:dev
+```
+
+Checks minimos:
+
+- `http://localhost:4000/api/health`
+- `http://localhost:4000/api/docs`
+
 ## Credenciales seed
 
 - usuario: `admin@gungnir.local`

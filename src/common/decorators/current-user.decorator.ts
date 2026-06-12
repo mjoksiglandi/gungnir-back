@@ -4,6 +4,7 @@ export interface RequestUser {
   sub: string;
   email: string;
   roles: string[];
+  permissions?: string[];
 }
 
 export const CurrentUser = createParamDecorator((_data: unknown, ctx: ExecutionContext): RequestUser | null => {

@@ -4,7 +4,7 @@
 
 - Node.js 22
 - `pnpm`
-- Docker Desktop o Docker Engine
+- Docker Engine en WSL o Docker Desktop
 - PostgreSQL, Redis y Mosquitto levantados por Compose
 
 ## Variables de entorno
@@ -46,6 +46,28 @@ pnpm run start:dev
 ```
 
 Swagger queda disponible en `http://localhost:4000/api/docs`.
+
+## Modo hibrido Windows + WSL recomendado
+
+Cuando el frontend corre nativo en Windows, el camino mas estable hoy es:
+
+1. Levantar solo `postgres`, `redis` y `mosquitto` con Compose dentro de WSL.
+2. Exponer esos puertos hacia Windows en los defaults del repo:
+   `5433`, `6380` y `1884`.
+3. Ejecutar `gungnir-back` nativo en Windows con el `.env` actual:
+
+```bash
+DATABASE_URL=postgres://gungnir:gungnir@127.0.0.1:5433/gungnir
+REDIS_URL=redis://127.0.0.1:6380
+MQTT_URL=mqtt://127.0.0.1:1884
+PORT=4000
+```
+
+4. Validar desde Windows:
+   `http://localhost:4000/api/health`
+   `http://localhost:4000/api/docs`
+
+Este modo evita depender de que `localhost:4000` quede correctamente reenviado desde un backend corriendo enteramente dentro de WSL/Docker.
 
 ## Credenciales seed
 
