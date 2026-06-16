@@ -84,9 +84,11 @@ Este modo evita depender de que `localhost:4000` quede correctamente reenviado d
 ## Calidad y pruebas
 
 ```bash
-pnpm run typecheck
-pnpm test
-pnpm run lint
+corepack pnpm lint
+corepack pnpm typecheck
+corepack pnpm test
+corepack pnpm test:e2e
+corepack pnpm build
 ```
 
-`typecheck` y `test` tienen cobertura en el repo actual. `lint` todavia debe considerarse una deuda abierta del proyecto y no una build limpia garantizada.
+En el estado actual del repo, `lint`, `typecheck`, `test`, `test:e2e` y `build` deben pasar en local con la configuracion del proyecto.

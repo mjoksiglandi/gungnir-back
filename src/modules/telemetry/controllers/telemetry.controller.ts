@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Param, Post, UseGuards, UsePipes } from '@nestjs/common';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import { TelemetryService } from './telemetry.service';
-import { telemetryIngestSchema, type TelemetryIngestDto } from './dto/telemetry.schemas';
+import { telemetryIngestSchema, type TelemetryIngestDto } from '../dto/telemetry.schemas';
+import { TelemetryService } from '../services/telemetry.service';
 
 @Controller('telemetry')
 export class TelemetryController {

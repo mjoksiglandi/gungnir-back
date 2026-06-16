@@ -387,6 +387,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#patron-por-modulo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Patron por modulo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#flujo-principal-de-telemetria" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -990,6 +1001,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#patron-por-modulo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Patron por modulo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#flujo-principal-de-telemetria" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1051,27 +1073,48 @@
 
 
 <h1 id="resumen-de-arquitectura">Resumen de arquitectura</h1>
-<p><code>gungnir-back</code> es un monolito modular NestJS con limites claros entre dominio, infraestructura y contratos compartidos.</p>
+<p><code>gungnir-back</code> es un monolito modular NestJS con limites claros entre dominio, infraestructura y contratos compartidos. La estructura actual prioriza navegacion por feature y separacion explicita entre capa HTTP, servicios de dominio y acceso a datos.</p>
 <h2 id="componentes-principales">Componentes principales</h2>
 <ul>
 <li><code>src/main.ts</code> inicializa Nest, <code>helmet</code>, validacion global, filtro de excepciones, interceptores, prefijo <code>/api</code> y Swagger en <code>/api/docs</code>.</li>
 <li><code>src/app.module.ts</code> compone infraestructura comun y modulos de dominio.</li>
+<li><code>src/common</code> concentra decorators, guards, interceptors, pipes, filtros y constantes reutilizables.</li>
 <li><code>src/config</code> resuelve configuracion tipada desde entorno usando Zod.</li>
 <li><code>src/infrastructure/database</code> conecta Drizzle con PostgreSQL, PostGIS y TimescaleDB.</li>
 <li><code>src/infrastructure/mqtt</code> maneja suscripcion y publicacion MQTT 5.</li>
 <li><code>src/contracts/domain-events.ts</code> centraliza los nombres de eventos de dominio que luego salen a realtime.</li>
+<li><code>src/modules/&lt;feature&gt;</code> agrupa cada bounded context; en los modulos refactorizados ya se separan <code>controllers</code>, <code>services</code>, <code>repositories</code>, <code>dto</code> y <code>types</code>.</li>
 </ul>
 <h2 id="estilo-arquitectonico">Estilo arquitectonico</h2>
 <ul>
 <li>monolito desplegable unico en la primera etapa</li>
 <li>modulos de dominio separados por bounded context</li>
+<li>separacion interna por capas dentro de cada modulo operativo</li>
 <li>contratos explicitos para API, MQTT y eventos</li>
 <li>preparacion para extraer integraciones de alto trafico mas adelante</li>
+</ul>
+<h2 id="patron-por-modulo">Patron por modulo</h2>
+<p>La forma recomendada para navegar y extender un modulo es:</p>
+<div class="highlight"><pre><span></span><code>src/modules/&lt;feature&gt;/
+  &lt;feature&gt;.module.ts
+  controllers/
+  services/
+  repositories/
+  dto/
+  types/ | entities/
+</code></pre></div>
+<p>Responsabilidades:</p>
+<ul>
+<li><code>controllers</code>: rutas y adaptacion HTTP</li>
+<li><code>services</code>: reglas de negocio, coordinacion y emision de eventos</li>
+<li><code>repositories</code>: consultas Drizzle, SQL directo y persistencia</li>
+<li><code>dto</code>: schemas y tipos del borde</li>
+<li><code>types</code> o <code>entities</code>: tipos internos o modelos del modulo</li>
 </ul>
 <h2 id="flujo-principal-de-telemetria">Flujo principal de telemetria</h2>
 <ol>
 <li>El backend recibe telemetria por <code>POST /api/telemetry/ingest</code>, por <code>telemetry/{deviceId}/state</code> o por <code>dev/{deviceId}/uplink</code>.</li>
-<li><code>TelemetryService</code> persiste el reporte en <code>telemetry_reports</code>.</li>
+<li><code>TelemetryService</code> coordina la ingestion y delega persistencia en <code>TelemetryRepository</code>.</li>
 <li>El estado actual se actualiza en <code>current_track_states</code>.</li>
 <li>El historial se refleja en <code>track_history</code>.</li>
 <li>Se emiten <code>telemetry.received</code> y <code>track.updated</code>.</li>
@@ -1080,7 +1123,8 @@
 <h2 id="flujo-principal-de-comandos">Flujo principal de comandos</h2>
 <ol>
 <li><code>POST /api/commands</code> crea un comando.</li>
-<li>El backend publica el payload por MQTT.</li>
+<li><code>CommandsService</code> coordina persistencia y publicacion MQTT.</li>
+<li><code>CommandsRepository</code> mantiene el lifecycle de estado del comando.</li>
 <li>Los mensajes <code>cmd/{deviceId}/response</code> actualizan el estado.</li>
 <li>Los cambios relevantes emiten eventos hacia realtime.</li>
 </ol>
@@ -1099,6 +1143,7 @@
 <li>CORS esta abierto a <code>origin: true</code>; la restriccion fina todavia no se aplica desde <code>CORS_ORIGIN</code>.</li>
 <li>Los secretos y TTLs se validan por entorno, pero algunos archivos de ejemplo hoy incluyen valores no aptos para compartir entre ambientes.</li>
 <li>La API moderna y la API COP conviven para permitir evolucion interna sin romper el frontend actual.</li>
+<li>Los servicios operativos grandes ya no concentran toda la persistencia en un solo archivo; esa responsabilidad se separo en repositorios por modulo.</li>
 </ul>
 
 

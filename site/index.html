@@ -304,6 +304,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#estructura-de-codigo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estructura de codigo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#estado-actual" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -966,6 +977,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#estructura-de-codigo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estructura de codigo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#estado-actual" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1023,6 +1045,21 @@
 <li>PostgreSQL + TimescaleDB + PostGIS como persistencia principal</li>
 <li>Redis + BullMQ para colas</li>
 <li>MQTT 5 para ingestion y command transport</li>
+</ul>
+<h2 id="estructura-de-codigo">Estructura de codigo</h2>
+<p>El repo se organiza en tres zonas base:</p>
+<ul>
+<li><code>src/common</code> para piezas transversales como guards, pipes, decorators, interceptors y constantes</li>
+<li><code>src/config</code> para configuracion tipada y validada por entorno</li>
+<li><code>src/infrastructure</code> para adaptadores de base de datos, MQTT y colas</li>
+</ul>
+<p>La logica de negocio vive en <code>src/modules</code>. En los modulos ya normalizados, cada feature separa:</p>
+<ul>
+<li><code>controllers</code> para la superficie HTTP</li>
+<li><code>services</code> para coordinacion de dominio y eventos</li>
+<li><code>repositories</code> para acceso a datos con Drizzle o SQL</li>
+<li><code>dto</code> para validacion y contratos del borde</li>
+<li><code>types</code> o <code>entities</code> para tipos internos del modulo</li>
 </ul>
 <h2 id="estado-actual">Estado actual</h2>
 <div class="admonition info">

@@ -20,6 +20,22 @@ Backend NestJS para una plataforma C4 / Common Operational Picture centrada en t
 - Redis + BullMQ para colas
 - MQTT 5 para ingestion y command transport
 
+## Estructura de codigo
+
+El repo se organiza en tres zonas base:
+
+- `src/common` para piezas transversales como guards, pipes, decorators, interceptors y constantes
+- `src/config` para configuracion tipada y validada por entorno
+- `src/infrastructure` para adaptadores de base de datos, MQTT y colas
+
+La logica de negocio vive en `src/modules`. En los modulos ya normalizados, cada feature separa:
+
+- `controllers` para la superficie HTTP
+- `services` para coordinacion de dominio y eventos
+- `repositories` para acceso a datos con Drizzle o SQL
+- `dto` para validacion y contratos del borde
+- `types` o `entities` para tipos internos del modulo
+
 ## Estado actual
 
 !!! info "Lo que ya esta conectado"

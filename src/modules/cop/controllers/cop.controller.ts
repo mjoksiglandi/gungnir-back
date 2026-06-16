@@ -1,5 +1,5 @@
 import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
-import { CopService } from './cop.service';
+import { CopService } from '../services/cop.service';
 
 @Controller('v1')
 export class CopController {

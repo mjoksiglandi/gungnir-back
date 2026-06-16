@@ -1,37 +1,26 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { desc, eq } from 'drizzle-orm';
-import { createHash, randomUUID } from 'node:crypto';
-import { DOMAIN_EVENTS } from '@/contracts/domain-events';
+import { randomUUID } from 'node:crypto';
+import { GEO_COORDINATE_SCALE } from '@/common/constants/geo.constants';
 import { DRIZZLE_DB, POSTGRES_CONNECTION } from '@/infrastructure/database/database.tokens';
 import type { AppDb } from '@/infrastructure/database/database.types';
 import { assets, currentTrackStates, devices, telemetryReports, trackHistory } from '@/infrastructure/database/schema';
 import type postgres from 'postgres';
-import { telemetryIngestSchema, type TelemetryIngestDto } from './dto/telemetry.schemas';
-
-const SCALE = 1_000_000;
+import type { TelemetryIngestDto } from '../dto/telemetry.schemas';
 
 @Injectable()
-export class TelemetryService {
+export class TelemetryRepository {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: AppDb,
     @Inject(POSTGRES_CONNECTION) private readonly sqlClient: postgres.Sql,
-    private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  private buildAutoCreatedAssetId(deviceId: string) {
-    const fingerprint = createHash('sha1').update(deviceId).digest('hex').slice(0, 16);
-    return `asset-auto-${fingerprint}`;
+  async findDevice(deviceId: string) {
+    const [existingDevice] = await this.db.select().from(devices).where(eq(devices.id, deviceId)).limit(1);
+    return existingDevice ?? null;
   }
 
-  private async ensureDeviceExists(input: TelemetryIngestDto) {
-    const [existingDevice] = await this.db.select().from(devices).where(eq(devices.id, input.deviceId)).limit(1);
-    if (existingDevice) {
-      return existingDevice;
-    }
-
-    const assetId = this.buildAutoCreatedAssetId(input.deviceId);
-
+  async createAutoProvisionedDevice(input: TelemetryIngestDto, assetId: string) {
     await this.db.insert(assets).values({
       id: assetId,
       name: `Auto ${input.deviceId}`,
@@ -61,7 +50,7 @@ export class TelemetryService {
       },
     }).onConflictDoNothing();
 
-    const [createdDevice] = await this.db.select().from(devices).where(eq(devices.id, input.deviceId)).limit(1);
+    const createdDevice = await this.findDevice(input.deviceId);
     if (!createdDevice) {
       throw new NotFoundException(`Device '${input.deviceId}' could not be created.`);
     }
@@ -69,15 +58,12 @@ export class TelemetryService {
     return createdDevice;
   }
 
-  async ingest(input: TelemetryIngestDto) {
-    const device = await this.ensureDeviceExists(input);
-
-    const assetId = input.assetId ?? device.assetId;
+  async ingest(input: TelemetryIngestDto, assetId: string | null) {
     const telemetryId = `telemetry-${randomUUID().slice(0, 8)}`;
     const trackId = `track-${input.deviceId}`;
     const historyId = `track-history-${randomUUID().slice(0, 8)}`;
-    const latScaled = Math.round(input.lat * SCALE);
-    const lonScaled = Math.round(input.lon * SCALE);
+    const latScaled = Math.round(input.lat * GEO_COORDINATE_SCALE);
+    const lonScaled = Math.round(input.lon * GEO_COORDINATE_SCALE);
     const timestamp = new Date(input.timestamp);
     const altitudeM = input.altitudeM != null ? Math.round(input.altitudeM) : null;
     const headingDeg = input.headingDeg != null ? Math.round(input.headingDeg) : null;
@@ -170,27 +156,11 @@ export class TelemetryService {
       updatedAt: new Date(),
     }).where(eq(devices.id, input.deviceId));
 
-    this.eventEmitter.emit(DOMAIN_EVENTS.telemetryReceived, {
-      deviceId: input.deviceId,
-      assetId,
-      timestamp: timestamp.toISOString(),
-    });
-
-    if (assetId) {
-      this.eventEmitter.emit(DOMAIN_EVENTS.trackUpdated, {
-        assetId,
-        deviceId: input.deviceId,
-        timestamp: timestamp.toISOString(),
-        lat: input.lat,
-        lon: input.lon,
-      });
-    }
-
     return {
       id: telemetryId,
       assetId,
       deviceId: input.deviceId,
-      status: 'ingested',
+      timestamp: timestamp.toISOString(),
     };
   }
 
@@ -205,15 +175,5 @@ export class TelemetryService {
       .where(eq(telemetryReports.deviceId, deviceId))
       .orderBy(desc(telemetryReports.timestamp))
       .limit(200);
-  }
-
-  @OnEvent('mqtt.telemetry.state')
-  async handleMqttTelemetry(payload: Record<string, unknown>) {
-    const parsed = telemetryIngestSchema.safeParse(payload);
-    if (!parsed.success) {
-      return;
-    }
-
-    await this.ingest(parsed.data);
   }
 }

@@ -404,6 +404,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#estructura-interna-recomendada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estructura interna recomendada
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roles-de-cada-capa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roles de cada capa
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#modulos-presentes-pero-no-cerrados-como-producto" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -946,6 +968,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#estructura-interna-recomendada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estructura interna recomendada
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roles-de-cada-capa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roles de cada capa
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#modulos-presentes-pero-no-cerrados-como-producto" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1062,6 +1106,33 @@
 </tr>
 </tbody>
 </table>
+<h2 id="estructura-interna-recomendada">Estructura interna recomendada</h2>
+<p>Los modulos con mayor carga operativa ya usan una estructura consistente por feature:</p>
+<div class="highlight"><pre><span></span><code>src/modules/&lt;feature&gt;/
+  &lt;feature&gt;.module.ts
+  controllers/
+  services/
+  repositories/
+  dto/
+  types/ | entities/
+</code></pre></div>
+<p>Hoy este patron ya esta aplicado en:</p>
+<ul>
+<li><code>commands</code></li>
+<li><code>cop</code></li>
+<li><code>devices</code></li>
+<li><code>external-sources</code></li>
+<li><code>telemetry</code></li>
+<li><code>tracking</code></li>
+</ul>
+<h2 id="roles-de-cada-capa">Roles de cada capa</h2>
+<ul>
+<li><code>controllers</code>: exponen endpoints y aplican guards o pipes del borde HTTP</li>
+<li><code>services</code>: coordinan casos de uso, eventos de dominio y dependencias entre piezas</li>
+<li><code>repositories</code>: encapsulan Drizzle, SQL directo y consultas especificas del modulo</li>
+<li><code>dto</code>: concentran schemas Zod y tipos para requests o queries</li>
+<li><code>types</code> o <code>entities</code>: modelan tipos auxiliares del modulo cuando hace falta</li>
+</ul>
 <h2 id="modulos-presentes-pero-no-cerrados-como-producto">Modulos presentes pero no cerrados como producto</h2>
 <p>Estos modulos se importan en <code>AppModule</code>, pero hoy no deben venderse como capacidades completas por si solos:</p>
 <ul>

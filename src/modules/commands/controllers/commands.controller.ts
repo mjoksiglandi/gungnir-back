@@ -2,8 +2,8 @@ import { Body, Controller, Get, Param, Post, UseGuards, UsePipes } from '@nestjs
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import { CommandsService } from './commands.service';
-import { commandCreateSchema, type CommandCreateDto } from './dto/command.schemas';
+import { commandCreateSchema, type CommandCreateDto } from '../dto/command.schemas';
+import { CommandsService } from '../services/commands.service';
 
 @Controller('commands')
 @UseGuards(JwtAuthGuard)

@@ -532,6 +532,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#windows-nativo-servicios-en-wsldocker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Windows nativo + servicios en WSL/Docker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#homelab-poc" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -968,6 +979,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#windows-nativo-servicios-en-wsldocker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Windows nativo + servicios en WSL/Docker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#homelab-poc" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1028,6 +1050,30 @@
 <li>Mosquitto en <code>localhost:1884</code></li>
 </ul>
 <p>Si el repo hermano del frontend no vive en la ruta esperada, sobreescribe <code>FRONTEND_DIR</code>.</p>
+<h2 id="windows-nativo-servicios-en-wsldocker">Windows nativo + servicios en WSL/Docker</h2>
+<p>Para desarrollo diario en Windows, hoy conviene tratar este esquema como baseline:</p>
+<ul>
+<li><code>gungnir-back</code> corriendo nativo en Windows sobre <code>http://localhost:4000</code></li>
+<li>frontend <code>Next.js</code> corriendo nativo en Windows sobre <code>http://localhost:3000</code></li>
+<li>PostgreSQL expuesto en <code>localhost:5433</code></li>
+<li>Redis expuesto en <code>localhost:6380</code></li>
+<li>Mosquitto expuesto en <code>localhost:1884</code></li>
+</ul>
+<p>Motivo principal:</p>
+<ul>
+<li>evita depender del reenvio <code>Windows -&gt; WSL -&gt; contenedor</code> para el puerto <code>4000</code></li>
+<li>conserva Compose para los servicios de infraestructura</li>
+<li>simplifica el debugging de <code>Next.js</code> y <code>NestJS</code> desde el host</li>
+</ul>
+<p>Smoke test recomendado:</p>
+<ol>
+<li><code>docker compose up -d postgres redis mosquitto</code></li>
+<li><code>corepack pnpm run start:dev</code> en <code>gungnir-back</code></li>
+<li><code>corepack pnpm dev</code> en <code>gugnir v2</code></li>
+<li>validar <code>http://localhost:4000/api/health</code></li>
+<li>validar <code>http://localhost:4000/api/docs</code></li>
+<li>validar <code>http://localhost:3000</code></li>
+</ol>
 <h2 id="homelab-poc">Homelab PoC</h2>
 <p><code>docker-compose.homelab.yml</code> empaqueta frontend, backend, PostgreSQL, Redis, Mosquitto y un perfil opcional con Cloudflare Tunnel.</p>
 <p>Supuestos del compose:</p>

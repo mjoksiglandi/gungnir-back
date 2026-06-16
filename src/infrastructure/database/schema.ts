@@ -7,7 +7,6 @@ import {
   integer,
   jsonb,
   pgEnum,
-  primaryKey,
   pgTable,
   text,
   timestamp,
@@ -448,16 +447,17 @@ export const missions = pgTable('missions', {
     .defaultNow(),
 });
 
-export const missionDevices = pgTable(
-  'mission_devices',
+export const deviceCallsignAssignments = pgTable(
+  'device_callsign_assignments',
   {
-    missionId: varchar('mission_id', { length: 64 })
-      .notNull()
-      .references(() => missions.id, { onDelete: 'cascade' }),
+    id: varchar('id', { length: 64 }).primaryKey(),
     deviceId: varchar('device_id', { length: 64 })
       .notNull()
       .references(() => devices.id, { onDelete: 'cascade' }),
+    assetId: varchar('asset_id', { length: 64 }).references(() => assets.id),
     callsign: varchar('callsign', { length: 80 }).notNull(),
+    startTime: timestamp('start_time', { withTimezone: true }).notNull(),
+    endTime: timestamp('end_time', { withTimezone: true }),
     metadata: jsonb('metadata')
       .$type<Record<string, unknown>>()
       .notNull()
@@ -470,11 +470,12 @@ export const missionDevices = pgTable(
       .defaultNow(),
   },
   (table) => ({
-    missionDevicesPk: primaryKey({
-      name: 'mission_devices_pkey',
-      columns: [table.missionId, table.deviceId],
-    }),
-    missionDevicesDeviceIdx: index('mission_devices_device_idx').on(table.deviceId),
+    deviceCallsignAssignmentsDeviceIdx: index(
+      'device_callsign_assignments_device_idx',
+    ).on(table.deviceId, table.startTime),
+    deviceCallsignAssignmentsAssetIdx: index(
+      'device_callsign_assignments_asset_idx',
+    ).on(table.assetId),
   }),
 );
 
@@ -638,5 +639,3 @@ export const refreshTokens = pgTable(
     refreshJtiIdx: uniqueIndex('refresh_tokens_jti_idx').on(table.jti),
   }),
 );
-
-export type DatabaseSchema = typeof import('./schema');

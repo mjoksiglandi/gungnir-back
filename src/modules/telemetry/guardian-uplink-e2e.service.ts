@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import type postgres from 'postgres';
 import { guardianUplinkE2eSchema } from './guardian-uplink-e2e.schemas';
-import { TelemetryService } from './telemetry.service';
+import { TelemetryService } from './services/telemetry.service';
 import {
   DRIZZLE_DB,
   POSTGRES_CONNECTION,

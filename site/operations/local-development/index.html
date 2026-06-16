@@ -515,6 +515,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#modo-hibrido-windows-wsl-recomendado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Modo hibrido Windows + WSL recomendado
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#credenciales-seed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1001,6 +1012,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#modo-hibrido-windows-wsl-recomendado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Modo hibrido Windows + WSL recomendado
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#credenciales-seed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1055,7 +1077,7 @@
 <ul>
 <li>Node.js 22</li>
 <li><code>pnpm</code></li>
-<li>Docker Desktop o Docker Engine</li>
+<li>Docker Engine en WSL o Docker Desktop</li>
 <li>PostgreSQL, Redis y Mosquitto levantados por Compose</li>
 </ul>
 <h2 id="variables-de-entorno">Variables de entorno</h2>
@@ -1093,6 +1115,25 @@ pnpm<span class="w"> </span>run<span class="w"> </span>db:seed
 pnpm<span class="w"> </span>run<span class="w"> </span>start:dev
 </code></pre></div>
 <p>Swagger queda disponible en <code>http://localhost:4000/api/docs</code>.</p>
+<h2 id="modo-hibrido-windows-wsl-recomendado">Modo hibrido Windows + WSL recomendado</h2>
+<p>Cuando el frontend corre nativo en Windows, el camino mas estable hoy es:</p>
+<ol>
+<li>Levantar solo <code>postgres</code>, <code>redis</code> y <code>mosquitto</code> con Compose dentro de WSL.</li>
+<li>Exponer esos puertos hacia Windows en los defaults del repo:
+   <code>5433</code>, <code>6380</code> y <code>1884</code>.</li>
+<li>Ejecutar <code>gungnir-back</code> nativo en Windows con el <code>.env</code> actual:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nv">DATABASE_URL</span><span class="o">=</span>postgres://gungnir:gungnir@127.0.0.1:5433/gungnir
+<span class="nv">REDIS_URL</span><span class="o">=</span>redis://127.0.0.1:6380
+<span class="nv">MQTT_URL</span><span class="o">=</span>mqtt://127.0.0.1:1884
+<span class="nv">PORT</span><span class="o">=</span><span class="m">4000</span>
+</code></pre></div>
+<ol>
+<li>Validar desde Windows:
+   <code>http://localhost:4000/api/health</code>
+   <code>http://localhost:4000/api/docs</code></li>
+</ol>
+<p>Este modo evita depender de que <code>localhost:4000</code> quede correctamente reenviado desde un backend corriendo enteramente dentro de WSL/Docker.</p>
 <h2 id="credenciales-seed">Credenciales seed</h2>
 <ul>
 <li>usuario: <code>admin@gungnir.local</code></li>
@@ -1106,11 +1147,13 @@ pnpm<span class="w"> </span>run<span class="w"> </span>start:dev
 <li><code>GET /api/v1/operations/bootstrap</code></li>
 </ol>
 <h2 id="calidad-y-pruebas">Calidad y pruebas</h2>
-<div class="highlight"><pre><span></span><code>pnpm<span class="w"> </span>run<span class="w"> </span>typecheck
-pnpm<span class="w"> </span><span class="nb">test</span>
-pnpm<span class="w"> </span>run<span class="w"> </span>lint
+<div class="highlight"><pre><span></span><code>corepack<span class="w"> </span>pnpm<span class="w"> </span>lint
+corepack<span class="w"> </span>pnpm<span class="w"> </span>typecheck
+corepack<span class="w"> </span>pnpm<span class="w"> </span><span class="nb">test</span>
+corepack<span class="w"> </span>pnpm<span class="w"> </span>test:e2e
+corepack<span class="w"> </span>pnpm<span class="w"> </span>build
 </code></pre></div>
-<p><code>typecheck</code> y <code>test</code> tienen cobertura en el repo actual. <code>lint</code> todavia debe considerarse una deuda abierta del proyecto y no una build limpia garantizada.</p>
+<p>En el estado actual del repo, <code>lint</code>, <code>typecheck</code>, <code>test</code>, <code>test:e2e</code> y <code>build</code> deben pasar en local con la configuracion del proyecto.</p>
 
 
 

@@ -4,6 +4,40 @@ Backend NestJS para la plataforma Gungnir C4 / Common Operational Picture.
 
 La documentacion del proyecto fue reorganizada como un sitio Material for MkDocs para separar contratos vivos, operacion y roadmap de notas historicas que ya no reflejaban el estado real del repo.
 
+## Estructura actual del backend
+
+El proyecto sigue siendo un monolito modular NestJS, pero ahora con una segmentacion mas clara por capas:
+
+```text
+src/
+  main.ts
+  app.module.ts
+  common/
+    decorators/
+    filters/
+    guards/
+    interceptors/
+    pipes/
+    constants/
+  config/
+  contracts/
+  infrastructure/
+    database/
+    mqtt/
+    queues/
+  modules/
+    <feature>/
+      <feature>.module.ts
+      controllers/
+      services/
+      repositories/
+      dto/
+      entities/ | types/
+  scripts/
+```
+
+Los modulos mas cargados ya siguen este patron, incluyendo `devices`, `commands`, `tracking`, `telemetry`, `cop` y `external-sources`.
+
 ## Documentacion
 
 - configuracion del sitio: [`mkdocs.yml`](./mkdocs.yml)
@@ -83,6 +117,18 @@ Checks minimos:
 
 - usuario: `admin@gungnir.local`
 - password: `admin12345`
+
+## Calidad y pruebas
+
+Validacion recomendada antes de subir cambios:
+
+```bash
+corepack pnpm lint
+corepack pnpm typecheck
+corepack pnpm test
+corepack pnpm test:e2e
+corepack pnpm build
+```
 
 ## Sitio de documentacion
 

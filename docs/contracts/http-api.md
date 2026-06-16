@@ -17,14 +17,18 @@ La aplicacion configura `app.setGlobalPrefix('api')`, por lo que todos los contr
 - `GET /api/devices/:id`
 - `POST /api/devices`
 - `PATCH /api/devices/:id`
+- `GET /api/devices/:id/callsigns`
+- `PATCH /api/devices/:id/callsigns`
 - `GET /api/devices/:id/current-state`
 - `GET /api/devices/:id/telemetry`
 - `GET /api/devices/:id/commands`
 
 Campos relevantes de configuracion:
 
+- `GET /api/devices?callsign=condor`: busca por `callsign` historico y devuelve todos los dispositivos que alguna vez usaron ese nombre
 - `platformType` o `P`: `air | sea | land | manpack | vehicle | unknown`
-- `callsign` no vive en `devices`; se configura por mision en `assignedDevices`
+- `callsign` es temporal y vive en `callsignAssignments` del dispositivo
+- `callsignAssignments`: arreglo de `{ assetId?, callsign, startTime, endTime?, metadata }`
 
 ### Telemetry y tracking
 
@@ -47,10 +51,6 @@ Campos relevantes de configuracion:
 - `GET /api/missions/:id`
 - `PATCH /api/missions/:id`
 - `DELETE /api/missions/:id`
-
-Campos relevantes de mision:
-
-- `assignedDevices`: arreglo de `{ deviceId, callsign, metadata }`
 - `GET /api/geofences`
 - `POST /api/geofences`
 - `GET /api/geofences/:id`

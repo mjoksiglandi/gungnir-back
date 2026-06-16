@@ -1,8 +1,8 @@
 import { Controller, Get, Param, Query, UseGuards, UsePipes } from '@nestjs/common';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import { bboxQuerySchema, type BboxQueryDto } from './dto/tracking.schemas';
-import { TrackingService } from './tracking.service';
+import { bboxQuerySchema, type BboxQueryDto } from '../dto/tracking.schemas';
+import { TrackingService } from '../services/tracking.service';
 
 @Controller('tracks')
 @UseGuards(JwtAuthGuard)

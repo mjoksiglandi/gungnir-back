@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { ExternalSourcesService } from './external-sources.service';
+import { ExternalSourcesService } from '../services/external-sources.service';
 
 @Controller('external-sources')
 @UseGuards(JwtAuthGuard)

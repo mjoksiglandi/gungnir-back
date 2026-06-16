@@ -1,4 +1,4 @@
-import { JwtService } from '@nestjs/jwt';
+import type { JwtService } from '@nestjs/jwt';
 import { hashSync } from 'bcryptjs';
 import { AuthService } from './auth.service';
 
@@ -17,6 +17,7 @@ describe('AuthService', () => {
         passwordHash: hashSync('admin12345', 10),
       }),
       getRolesForUser: jest.fn().mockResolvedValue(['admin']),
+      getPermissionsForUser: jest.fn().mockResolvedValue(['users.read']),
     };
 
     const jwtService = {
@@ -39,5 +40,6 @@ describe('AuthService', () => {
     expect(result.accessToken).toBe('signed-token');
     expect(result.refreshToken).toBe('signed-token');
     expect(usersService.getRolesForUser).toHaveBeenCalledWith('user-admin');
+    expect(usersService.getPermissionsForUser).toHaveBeenCalledWith('user-admin');
   });
 });

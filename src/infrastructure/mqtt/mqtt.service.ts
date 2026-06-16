@@ -76,7 +76,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  async publishJson(topic: string, payload: Record<string, unknown>) {
+  publishJson(topic: string, payload: Record<string, unknown>) {
     if (!this.client) {
       this.logger.warn(`MQTT client unavailable; skipping publish to ${topic}`);
       return;

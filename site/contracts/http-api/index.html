@@ -1144,9 +1144,18 @@
 <li><code>GET /api/devices/:id</code></li>
 <li><code>POST /api/devices</code></li>
 <li><code>PATCH /api/devices/:id</code></li>
+<li><code>GET /api/devices/:id/callsigns</code></li>
+<li><code>PATCH /api/devices/:id/callsigns</code></li>
 <li><code>GET /api/devices/:id/current-state</code></li>
 <li><code>GET /api/devices/:id/telemetry</code></li>
 <li><code>GET /api/devices/:id/commands</code></li>
+</ul>
+<p>Campos relevantes de configuracion:</p>
+<ul>
+<li><code>GET /api/devices?callsign=condor</code>: busca por <code>callsign</code> historico y devuelve todos los dispositivos que alguna vez usaron ese nombre</li>
+<li><code>platformType</code> o <code>P</code>: <code>air | sea | land | manpack | vehicle | unknown</code></li>
+<li><code>callsign</code> es temporal y vive en <code>callsignAssignments</code> del dispositivo</li>
+<li><code>callsignAssignments</code>: arreglo de <code>{ assetId?, callsign, startTime, endTime?, metadata }</code></li>
 </ul>
 <h3 id="telemetry-y-tracking">Telemetry y tracking</h3>
 <ul>

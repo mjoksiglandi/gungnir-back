@@ -18,6 +18,37 @@
 | `system-health` | salud y metricas | `/api/health`, `/api/metrics` |
 | `cop` | compatibilidad con frontend actual | `/api/v1/*` |
 
+## Estructura interna recomendada
+
+Los modulos con mayor carga operativa ya usan una estructura consistente por feature:
+
+```text
+src/modules/<feature>/
+  <feature>.module.ts
+  controllers/
+  services/
+  repositories/
+  dto/
+  types/ | entities/
+```
+
+Hoy este patron ya esta aplicado en:
+
+- `commands`
+- `cop`
+- `devices`
+- `external-sources`
+- `telemetry`
+- `tracking`
+
+## Roles de cada capa
+
+- `controllers`: exponen endpoints y aplican guards o pipes del borde HTTP
+- `services`: coordinan casos de uso, eventos de dominio y dependencias entre piezas
+- `repositories`: encapsulan Drizzle, SQL directo y consultas especificas del modulo
+- `dto`: concentran schemas Zod y tipos para requests o queries
+- `types` o `entities`: modelan tipos auxiliares del modulo cuando hace falta
+
 ## Modulos presentes pero no cerrados como producto
 
 Estos modulos se importan en `AppModule`, pero hoy no deben venderse como capacidades completas por si solos:

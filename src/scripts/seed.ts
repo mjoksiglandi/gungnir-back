@@ -98,8 +98,8 @@ async function main() {
 
   const permissionRows = [
     { id: 'perm-devices-read', key: 'devices.read', description: 'Read devices' },
-    { id: 'perm-devices-configure', key: 'devices.configure', description: 'Configure device platform data' },
-    { id: 'perm-missions-configure', key: 'missions.configure', description: 'Configure mission device callsigns' },
+    { id: 'perm-devices-configure', key: 'devices.configure', description: 'Configure device platform data and callsign history' },
+    { id: 'perm-missions-configure', key: 'missions.configure', description: 'Configure missions' },
     { id: 'perm-commands-write', key: 'commands.write', description: 'Issue commands' },
     { id: 'perm-alerts-manage', key: 'alerts.manage', description: 'Manage alerts' },
   ];

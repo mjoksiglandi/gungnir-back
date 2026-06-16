@@ -1,8 +1,8 @@
-import { TelemetryService } from './telemetry.service';
+import { TelemetryService } from './services/telemetry.service';
 
 describe('TelemetryService', () => {
   it('delegates MQTT telemetry payloads into ingest', async () => {
-    const service = new TelemetryService({} as never, {} as never, { emit: jest.fn() } as never);
+    const service = new TelemetryService({} as never, { emit: jest.fn() } as never);
     const ingestSpy = jest.spyOn(service, 'ingest').mockResolvedValue({
       id: 'telemetry-1',
       assetId: 'asset-1',
@@ -23,7 +23,7 @@ describe('TelemetryService', () => {
   });
 
   it('normalizes compact MQTT telemetry payloads before ingesting', async () => {
-    const service = new TelemetryService({} as never, {} as never, { emit: jest.fn() } as never);
+    const service = new TelemetryService({} as never, { emit: jest.fn() } as never);
     const ingestSpy = jest.spyOn(service, 'ingest').mockResolvedValue({
       id: 'telemetry-1',
       assetId: 'asset-1',

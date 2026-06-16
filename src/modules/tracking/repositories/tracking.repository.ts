@@ -1,13 +1,12 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq, gte, lte } from 'drizzle-orm';
+import { GEO_COORDINATE_SCALE } from '@/common/constants/geo.constants';
 import { DRIZZLE_DB } from '@/infrastructure/database/database.tokens';
 import type { AppDb } from '@/infrastructure/database/database.types';
 import { currentTrackStates, trackHistory } from '@/infrastructure/database/schema';
 
-const SCALE = 1_000_000;
-
 @Injectable()
-export class TrackingService {
+export class TrackingRepository {
   constructor(@Inject(DRIZZLE_DB) private readonly db: AppDb) {}
 
   current() {
@@ -28,10 +27,10 @@ export class TrackingService {
 
   bbox(query: { minLat?: number; minLon?: number; maxLat?: number; maxLon?: number }) {
     const filters = [];
-    if (query.minLat != null) filters.push(gte(currentTrackStates.lat, Math.round(query.minLat * SCALE)));
-    if (query.maxLat != null) filters.push(lte(currentTrackStates.lat, Math.round(query.maxLat * SCALE)));
-    if (query.minLon != null) filters.push(gte(currentTrackStates.lon, Math.round(query.minLon * SCALE)));
-    if (query.maxLon != null) filters.push(lte(currentTrackStates.lon, Math.round(query.maxLon * SCALE)));
+    if (query.minLat != null) filters.push(gte(currentTrackStates.lat, Math.round(query.minLat * GEO_COORDINATE_SCALE)));
+    if (query.maxLat != null) filters.push(lte(currentTrackStates.lat, Math.round(query.maxLat * GEO_COORDINATE_SCALE)));
+    if (query.minLon != null) filters.push(gte(currentTrackStates.lon, Math.round(query.minLon * GEO_COORDINATE_SCALE)));
+    if (query.maxLon != null) filters.push(lte(currentTrackStates.lon, Math.round(query.maxLon * GEO_COORDINATE_SCALE)));
 
     if (filters.length === 0) {
       return this.current();
