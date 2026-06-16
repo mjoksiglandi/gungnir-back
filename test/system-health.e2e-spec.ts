@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { SystemHealthModule } from '@/modules/system-health/system-health.module';
 
@@ -21,8 +21,10 @@ describe('SystemHealthController (e2e)', () => {
   });
 
   it('/api/health (GET)', async () => {
-    const response = await request(app.getHttpServer()).get('/api/health');
+    const response = await request(app.getHttpServer() as Parameters<typeof request>[0]).get('/api/health');
+    const body = response.body as { status: string };
+
     expect(response.status).toBe(200);
-    expect(response.body.status).toBe('ok');
+    expect(body.status).toBe('ok');
   });
 });

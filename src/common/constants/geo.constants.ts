@@ -1,0 +1,1 @@
+export const GEO_COORDINATE_SCALE = 1_000_000;

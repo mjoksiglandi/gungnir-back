@@ -1,264 +1,151 @@
 # Gungnir Back
 
-Backend NestJS para una plataforma C4 / Common Operational Picture orientada a operaciones con Guardian devices, UAV/UGV telemetry, companion gateways MAVLink, integraciones ATAK/CoT, capas externas, comandos, alertas y situational awareness en tiempo real.
+Backend NestJS para la plataforma Gungnir C4 / Common Operational Picture.
+
+La documentacion del proyecto fue reorganizada como un sitio Material for MkDocs para separar contratos vivos, operacion y roadmap de notas historicas que ya no reflejaban el estado real del repo.
+
+## Estructura actual del backend
+
+El proyecto sigue siendo un monolito modular NestJS, pero ahora con una segmentacion mas clara por capas:
+
+```text
+src/
+  main.ts
+  app.module.ts
+  common/
+    decorators/
+    filters/
+    guards/
+    interceptors/
+    pipes/
+    constants/
+  config/
+  contracts/
+  infrastructure/
+    database/
+    mqtt/
+    queues/
+  modules/
+    <feature>/
+      <feature>.module.ts
+      controllers/
+      services/
+      repositories/
+      dto/
+      entities/ | types/
+  scripts/
+```
+
+Los modulos mas cargados ya siguen este patron, incluyendo `devices`, `commands`, `tracking`, `telemetry`, `cop` y `external-sources`.
 
 ## Documentacion
 
-- vision tecnica: [`docs/backend-overview.md`](./docs/backend-overview.md)
-- integracion DGAC para frontend: [`docs/dgac-layers-frontend.md`](./docs/dgac-layers-frontend.md)
-- integracion de natural hazards estilo Osiris: [`docs/natural-hazards-osiris-integration.md`](./docs/natural-hazards-osiris-integration.md)
-- code review del estado actual: [`docs/code-review-2026-05-18.md`](./docs/code-review-2026-05-18.md)
-- despliegue homelab / PoC: [`docs/homelab-poc.md`](./docs/homelab-poc.md)
+- configuracion del sitio: [`mkdocs.yml`](./mkdocs.yml)
+- punto de entrada: [`docs/index.md`](./docs/index.md)
+- dependencias de docs: [`requirements-docs.txt`](./requirements-docs.txt)
+
+Secciones principales:
+
+- arquitectura
+- operacion local, WSL y homelab
+- contratos HTTP, realtime y MQTT
+- Guardian E2E uplink
+- integraciones de capas externas
+- roadmap tecnico
 
 ## Stack
 
-- Node.js 22 LTS
+- Node.js 22
 - TypeScript estricto
 - NestJS
-- Drizzle ORM + drizzle-kit
+- Drizzle ORM
 - PostgreSQL + TimescaleDB + PostGIS
 - Redis + BullMQ
 - MQTT 5
-- Socket.IO WebSocket Gateway bajo `/realtime`
-- Swagger/OpenAPI en `/api/docs`
-- Docker Compose
+- Socket.IO en `/realtime`
+- Swagger en `/api/docs`
+- Material for MkDocs para documentacion
 
-## Arquitectura
+## Arranque rapido
 
-El backend corre como un monolito modular con fronteras claras por dominio y con comunicación interna orientada a eventos.
+```bash
+docker compose up -d postgres redis mosquitto
+corepack enable
+pnpm install
+pnpm run db:migrate
+pnpm run db:seed
+pnpm run start:dev
+```
 
-### Principios
+Swagger queda en `http://localhost:4000/api/docs`.
 
-- una sola app NestJS desplegable en la primera versión
-- separación fuerte entre dominios, infraestructura y contratos
-- simplicidad operacional primero
-- preparación explícita para extracción futura
+## Modo recomendado en Windows
 
-### Módulos críticos ya conectados
+Si trabajas con frontend en Windows y servicios auxiliares dentro de WSL/Docker, el flujo validado hoy es:
 
-- `auth`
-- `users`
-- `assets`
-- `devices`
-- `telemetry`
-- `tracking`
-- `commands`
-- `missions`
-- `geofences`
-- `alerts`
-- `map-layers`
-- `external-sources`
-- `realtime`
-- `audit`
-- `system-health`
-- `cop` para compatibilidad con el frontend actual bajo `/api/v1`
-
-### Módulos preparados para extracción futura
-
-- `telemetry`
-- `realtime`
-- `guardian`
-- `mavlink`
-- `atak`
-- `cot`
-- `external-sources`
-- `alerts`
-- `commands`
-
-### Estrategia de extracción
-
-Las futuras extracciones conservan:
-
-- DTOs y contratos
-- eventos internos
-- interfaces de transporte
-- servicios por dominio
-- repositorios y queries
-
-La API pública puede mantenerse mientras los módulos cambian de ejecución in-process a ejecución distribuida.
-
-## Endpoints
-
-### API moderna
-
-- `POST /api/auth/login`
-- `POST /api/auth/refresh`
-- `POST /api/auth/logout`
-- `GET /api/auth/me`
-- `GET /api/devices`
-- `GET /api/devices/:id`
-- `POST /api/devices`
-- `PATCH /api/devices/:id`
-- `GET /api/devices/:id/current-state`
-- `GET /api/devices/:id/telemetry`
-- `GET /api/devices/:id/commands`
-- `POST /api/telemetry/ingest`
-- `GET /api/telemetry`
-- `GET /api/telemetry/:deviceId`
-- `GET /api/tracks/current`
-- `GET /api/tracks/history`
-- `GET /api/tracks/:id`
-- `GET /api/tracks/bbox`
-- `POST /api/commands`
-- `GET /api/commands`
-- `GET /api/commands/:id`
-- `POST /api/commands/:id/cancel`
-- `GET /api/missions`
-- `POST /api/missions`
-- `GET /api/missions/:id`
-- `PATCH /api/missions/:id`
-- `DELETE /api/missions/:id`
-- `GET /api/geofences`
-- `POST /api/geofences`
-- `GET /api/geofences/:id`
-- `PATCH /api/geofences/:id`
-- `DELETE /api/geofences/:id`
-- `GET /api/alerts`
-- `POST /api/alerts/:id/ack`
-- `POST /api/alerts/:id/resolve`
-- `GET /api/map-layers`
-- `GET /api/map-layers/:id`
-- `GET /api/map-layers/:id/features`
-- `GET /api/map-layers/:id/geojson`
-- `PATCH /api/map-layers/:id`
-- `GET /api/external-sources`
-- `POST /api/external-sources/sync-all`
-- `POST /api/external-sources/:id/sync`
-- `GET /api/health`
-- `GET /api/metrics`
-
-### Compatibilidad con `gungnir-front`
-
-El controlador `cop` expone los contratos existentes del frontend bajo `/api/v1`:
-
-- `GET /api/v1/operations/bootstrap`
-- `GET /api/v1/operations/snapshot`
-- `GET /api/v1/assets`
-- `GET /api/v1/assets/:id`
-- `GET /api/v1/alerts`
-- `GET /api/v1/alerts/:id`
-- `GET /api/v1/incidents`
-- `GET /api/v1/incidents/:id`
-- `GET /api/v1/layers`
-- `GET /api/v1/layers/:id`
-- `GET /api/v1/layers/:id/geojson`
-- `GET /api/v1/timeline`
-- `GET /api/v1/timeline/:id`
-- `GET /api/v1/geospatial/fire-hotspots`
-
-## Eventos internos
-
-Eventos principales emitidos por el backend:
-
-- `telemetry.received`
-- `track.updated`
-- `command.issued`
-- `command.acknowledged`
-- `alert.created`
-- `alert.updated`
-- `mission.updated`
-- `layer.synced`
-- `device.status.changed`
-
-El gateway realtime retransmite estos eventos como:
-
-- `track.updated`
-- `telemetry.received`
-- `command.status.changed`
-- `alert.created`
-- `alert.updated`
-- `mission.updated`
-- `layer.updated`
-
-## MQTT
-
-Topics soportados:
-
-- `telemetry/{deviceId}/state`
-- `telemetry/{deviceId}/event`
-- `cmd/{deviceId}/request`
-- `cmd/{deviceId}/response`
-- `device/{deviceId}/status`
-- `device/{deviceId}/config`
-
-La primera versión:
-
-- publica comandos por MQTT
-- consume ACKs y respuestas de comandos
-- consume estado de dispositivos
-- consume telemetría normalizada
-
-El backend no habla MAVLink directo. La expectativa es:
-
-`flight controller -> companion-agent (PyMAVLink) -> MQTT 5 -> Gungnir backend`
-
-## Desarrollo local
-
-1. Levantar infraestructura:
+1. Desde `gungnir back`, levanta solo infraestructura:
 
 ```bash
 docker compose up -d postgres redis mosquitto
 ```
 
-2. Instalar dependencias:
+2. Mantén `.env` apuntando a los puertos publicados en Windows:
+
+```bash
+DATABASE_URL=postgres://gungnir:gungnir@127.0.0.1:5433/gungnir
+REDIS_URL=redis://127.0.0.1:6380
+MQTT_URL=mqtt://127.0.0.1:1884
+PORT=4000
+```
+
+3. Ejecuta el backend nativo en Windows:
 
 ```bash
 corepack enable
-pnpm install
+corepack pnpm install
+corepack pnpm run db:migrate
+corepack pnpm run db:seed
+corepack pnpm run start:dev
 ```
 
-3. Migrar y seed:
+Checks minimos:
 
-```bash
-pnpm run db:migrate
-pnpm run db:seed
-```
-
-4. Levantar backend:
-
-```bash
-pnpm run start:dev
-```
-
-Swagger queda en [http://localhost:4000/api/docs](http://localhost:4000/api/docs).
+- `http://localhost:4000/api/health`
+- `http://localhost:4000/api/docs`
 
 ## Credenciales seed
 
 - usuario: `admin@gungnir.local`
 - password: `admin12345`
 
-Device seed:
+## Calidad y pruebas
 
-- `device-uav-001`
-- API key hash cargada para ejemplo
-
-## Pruebas
+Validacion recomendada antes de subir cambios:
 
 ```bash
-pnpm test
-pnpm run test:e2e
+corepack pnpm lint
+corepack pnpm typecheck
+corepack pnpm test
+corepack pnpm test:e2e
+corepack pnpm build
 ```
 
-Incluye pruebas base de:
+## Sitio de documentacion
 
-- auth token flow
-- command ACK handling
-- MQTT telemetry delegation
-- health endpoint
+Instalacion:
 
-## Notas
+```bash
+python -m pip install -r requirements-docs.txt
+```
 
-- `telemetry_reports` se crea como hypertable de TimescaleDB.
-- El proyecto usa PostGIS para geometrías en misiones, geofences, alertas y features de capas.
-- Algunas integraciones especializadas como `guardian`, `mavlink`, `atak` y `cot` están preparadas como bounded contexts para la siguiente iteración, pero todavía no tienen adapters de producción completos.
-## Publicacion de imagenes
+Desarrollo local:
 
-El repositorio incluye el workflow [`publish-image.yml`](./.github/workflows/publish-image.yml) para construir y publicar la imagen Docker en `GHCR`.
+```bash
+mkdocs serve
+```
 
-- imagen: `ghcr.io/<github-owner>/gungnir-back`
-- triggers: cada `push`, tags `v*` y ejecucion manual
-- tags publicados: nombre de rama, SHA del commit y `latest` solo en la rama por defecto
+Build estatico:
 
-No requiere secrets adicionales para publicar en `GHCR`; usa `GITHUB_TOKEN` con permiso `packages: write`.
-
-La parte de despliegue remoto al homelab todavia no esta conectada. El siguiente paso deberia consumir esta imagen desde `GHCR` usando `image:` en lugar de `build:`.
+```bash
+mkdocs build
+```

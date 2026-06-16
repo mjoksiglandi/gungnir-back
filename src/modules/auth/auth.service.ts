@@ -61,7 +61,8 @@ export class AuthService {
     }
 
     const roles = await this.usersService.getRolesForUser(user.id);
-    return this.issueTokenPair(user.id, user.email, roles);
+    const permissions = await this.usersService.getPermissionsForUser(user.id);
+    return this.issueTokenPair(user.id, user.email, roles, permissions);
   }
 
   async refresh(refreshToken: string) {
@@ -76,7 +77,8 @@ export class AuthService {
     }
 
     const roles = await this.usersService.getRolesForUser(payload.sub);
-    return this.issueTokenPair(payload.sub, payload.email, roles);
+    const permissions = await this.usersService.getPermissionsForUser(payload.sub);
+    return this.issueTokenPair(payload.sub, payload.email, roles, permissions);
   }
 
   async logout(refreshToken: string) {
@@ -96,26 +98,43 @@ export class AuthService {
       throw new UnauthorizedException('User not found.');
     }
 
-    const roles = await this.usersService.getRolesForUser(user.id);
+    const roles = [...new Set(await this.usersService.getRolesForUser(user.id))];
+    const permissions = [
+      ...new Set(await this.usersService.getPermissionsForUser(user.id)),
+    ];
     return {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
       status: user.status,
       roles,
+      permissions,
     };
   }
 
-  private async issueTokenPair(userId: string, email: string, roles: string[]) {
+  private async issueTokenPair(
+    userId: string,
+    email: string,
+    roles: string[],
+    permissions: string[],
+  ) {
     const jti = randomUUID();
+    const uniqueRoles = [...new Set(roles)];
+    const uniquePermissions = [...new Set(permissions)];
 
     const accessToken = await this.jwtService.signAsync(
-      { sub: userId, email, roles },
+      { sub: userId, email, roles: uniqueRoles, permissions: uniquePermissions },
       { secret: this.accessSecret, expiresIn: this.ttlToSeconds(this.accessTtl) },
     );
 
     const refreshToken = await this.jwtService.signAsync(
-      { sub: userId, email, roles, jti },
+      {
+        sub: userId,
+        email,
+        roles: uniqueRoles,
+        permissions: uniquePermissions,
+        jti,
+      },
       { secret: this.refreshSecret, expiresIn: this.ttlToSeconds(this.refreshTtl) },
     );
 

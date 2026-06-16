@@ -5,9 +5,9 @@ services:
       dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile}
       args:
         BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:4000/api}
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.example.com/api}
-        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-https://api.example.com/realtime}
-        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://app.example.com}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000/api}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:4000/realtime}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     container_name: gungnir-frontend
     restart: unless-stopped
     env_file:
@@ -18,7 +18,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
 
   backend:
     build:
@@ -36,8 +36,12 @@ services:
       mosquitto:
         condition: service_started
     ports:
-      - "4000:4000"
-    command: sh -c "pnpm run db:migrate && pnpm run db:seed && node dist/main.js"
+      - "${BACKEND_PORT:-4000}:4000"
+    command: >-
+      sh -c "node docker/wait-for-postgres.js &&
+      pnpm run db:migrate &&
+      pnpm run db:seed &&
+      node dist/main.js"
 
   postgres:
     image: timescale/timescaledb-ha:pg17

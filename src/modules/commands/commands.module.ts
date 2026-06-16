@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@/infrastructure/database/database.module';
 import { MqttModule } from '@/infrastructure/mqtt/mqtt.module';
-import { CommandsController } from './commands.controller';
-import { CommandsService } from './commands.service';
+import { CommandsController } from './controllers/commands.controller';
+import { CommandsRepository } from './repositories/commands.repository';
+import { CommandsService } from './services/commands.service';
 
 @Module({
   imports: [DatabaseModule, MqttModule],
   controllers: [CommandsController],
-  providers: [CommandsService],
+  providers: [CommandsRepository, CommandsService],
   exports: [CommandsService],
 })
 export class CommandsModule {}

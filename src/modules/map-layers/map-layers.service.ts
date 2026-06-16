@@ -7,6 +7,17 @@ import { DRIZZLE_DB, POSTGRES_CONNECTION } from '@/infrastructure/database/datab
 import type { AppDb } from '@/infrastructure/database/database.types';
 import { mapLayers } from '@/infrastructure/database/schema';
 
+type LayerFeatureRow = {
+  id: string;
+  layerId: string;
+  source: string;
+  externalId: string | null;
+  geometry: Record<string, unknown>;
+  properties: Record<string, unknown>;
+  timestamp: string;
+  expiresAt: string | null;
+};
+
 @Injectable()
 export class MapLayersService {
   constructor(
@@ -41,7 +52,7 @@ export class MapLayersService {
 
   async features(id: string) {
     await this.get(id);
-    return this.sqlClient.unsafe(
+    return this.sqlClient.unsafe<LayerFeatureRow[]>(
       `SELECT id, layer_id as "layerId", source, external_id as "externalId",
               ST_AsGeoJSON(geometry)::json as geometry, properties, timestamp, expires_at as "expiresAt"
        FROM layer_features

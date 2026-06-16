@@ -2,7 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { DRIZZLE_DB } from '@/infrastructure/database/database.tokens';
 import type { AppDb } from '@/infrastructure/database/database.types';
-import { roles, userRoles, users } from '@/infrastructure/database/schema';
+import {
+  permissions,
+  rolePermissions,
+  roles,
+  userRoles,
+  users,
+} from '@/infrastructure/database/schema';
 
 @Injectable()
 export class UsersService {
@@ -25,6 +31,17 @@ export class UsersService {
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
       .where(eq(userRoles.userId, userId));
 
-    return rows.map((row) => row.roleName);
+    return [...new Set(rows.map((row) => row.roleName))];
+  }
+
+  async getPermissionsForUser(userId: string) {
+    const rows = await this.db
+      .select({ permissionKey: permissions.key })
+      .from(userRoles)
+      .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
+      .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+      .where(eq(userRoles.userId, userId));
+
+    return [...new Set(rows.map((row) => row.permissionKey))];
   }
 }
